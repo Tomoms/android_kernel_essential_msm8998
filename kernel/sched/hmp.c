@@ -3927,16 +3927,17 @@ err:
 static void remove_task_from_group(struct task_struct *p)
 {
 	struct related_thread_group *grp = p->grp;
+	struct rq_flags rf;
 	struct rq *rq;
 	int empty_group = 1;
 
 	raw_spin_lock(&grp->lock);
 
-	rq = __task_rq_lock(p);
+	rq = __task_rq_lock(p, &rf);
 	transfer_busy_time(rq, p->grp, p, REM_TASK);
 	list_del_init(&p->grp_list);
 	rcu_assign_pointer(p->grp, NULL);
-	__task_rq_unlock(rq);
+	__task_rq_unlock(rq, &rf);
 
 	if (!list_empty(&grp->tasks)) {
 		empty_group = 0;
@@ -3957,6 +3958,7 @@ static void remove_task_from_group(struct task_struct *p)
 static int
 add_task_to_group(struct task_struct *p, struct related_thread_group *grp)
 {
+	struct rq_flags rf;
 	struct rq *rq;
 
 	raw_spin_lock(&grp->lock);
@@ -3965,11 +3967,11 @@ add_task_to_group(struct task_struct *p, struct related_thread_group *grp)
 	 * Change p->grp under rq->lock. Will prevent races with read-side
 	 * reference of p->grp in various hot-paths
 	 */
-	rq = __task_rq_lock(p);
+	rq = __task_rq_lock(p, &rf);
 	transfer_busy_time(rq, grp, p, ADD_TASK);
 	list_add(&p->grp_list, &grp->tasks);
 	rcu_assign_pointer(p->grp, grp);
-	__task_rq_unlock(rq);
+	__task_rq_unlock(rq, &rf);
 
 	_set_preferred_cluster(grp);
 

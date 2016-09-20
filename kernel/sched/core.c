@@ -3982,7 +3982,8 @@ out_unlock:
 
 void set_user_nice(struct task_struct *p, long nice)
 {
-	int old_prio, delta, queued;
+	bool queued, running;
+	int old_prio, delta;
 	unsigned long flags;
 	struct rq *rq;
 
@@ -4006,8 +4007,11 @@ void set_user_nice(struct task_struct *p, long nice)
 		goto out_unlock;
 	}
 	queued = task_on_rq_queued(p);
+	running = task_current(rq, p);
 	if (queued)
 		dequeue_task(rq, p, DEQUEUE_SAVE);
+	if (running)
+		put_prev_task(rq, p);
 
 	p->static_prio = NICE_TO_PRIO(nice);
 	set_load_weight(p);
@@ -4024,6 +4028,8 @@ void set_user_nice(struct task_struct *p, long nice)
 		if (delta < 0 || (delta > 0 && task_running(rq, p)))
 			resched_curr(rq);
 	}
+	if (running)
+		p->sched_class->set_curr_task(rq);
 out_unlock:
 	task_rq_unlock(rq, p, &flags);
 }

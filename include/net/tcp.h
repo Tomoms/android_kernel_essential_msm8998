@@ -1537,7 +1537,7 @@ struct tcp_fastopen_context {
 
 static inline void tcp_init_send_head(struct sock *sk);
 extern unsigned int sysctl_tcp_fastopen_blackhole_timeout;
-void tcp_fastopen_active_disable(void);
+void tcp_fastopen_active_disable(struct sock *sk);
 bool tcp_fastopen_active_should_disable(struct sock *sk);
 void tcp_fastopen_active_disable_ofo_check(struct sock *sk);
 void tcp_fastopen_active_timeout_reset(void);

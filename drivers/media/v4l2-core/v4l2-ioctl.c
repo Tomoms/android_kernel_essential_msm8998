@@ -2812,7 +2812,7 @@ video_usercopy(struct file *file, unsigned int cmd, unsigned long arg,
 			parg = sbuf;
 		} else {
 			/* too big to allocate from stack */
-			mbuf = kmalloc(_IOC_SIZE(cmd), GFP_KERNEL);
+			mbuf = kvmalloc(_IOC_SIZE(cmd), GFP_KERNEL);
 			if (NULL == mbuf)
 				return -ENOMEM;
 			parg = mbuf;
@@ -2853,7 +2853,7 @@ video_usercopy(struct file *file, unsigned int cmd, unsigned long arg,
 	has_array_args = err;
 
 	if (has_array_args) {
-		array_buf = kmalloc(array_size, GFP_KERNEL);
+		array_buf = kvmalloc(array_size, GFP_KERNEL);
 		err = -ENOMEM;
 		if (array_buf == NULL)
 			goto out_array_args;
@@ -2899,8 +2899,12 @@ out_array_args:
 	}
 
 out:
+<<<<<<< HEAD
 	kfree(array_buf);
 	kfree(mbuf);
+=======
+	kvfree(mbuf);
+>>>>>>> a0277a72bb76 (CHROMIUM: [media] v4l2-core: Use kvmalloc() for potentially big allocations)
 	return err;
 }
 EXPORT_SYMBOL(video_usercopy);

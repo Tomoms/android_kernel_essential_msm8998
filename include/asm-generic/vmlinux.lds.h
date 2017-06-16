@@ -478,6 +478,7 @@
 		*(.text.hot .text.hot.*)				\
 		*(TEXT_MAIN .text.fixup)					\
 		*(.text.unlikely .text.unlikely)			\
+		*(.text..ftrace)					\
 		*(.text.unknown .text.unknown.*)			\
 		*(.ref.text)						\
 		*(.text.asan.* .text.tsan.*)				\

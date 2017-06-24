@@ -748,19 +748,50 @@ unsigned long nsecs_to_jiffies(u64 n)
 EXPORT_SYMBOL_GPL(nsecs_to_jiffies);
 
 /*
- * Add two timespec values and do a safety check for overflow.
- * It's assumed that both values are valid (>= 0)
+ * Add two timespec64 values and do a safety check for overflow.
+ * It's assumed that both values are valid (>= 0).
+ * And, each timespec64 is in normalized form.
  */
-struct timespec timespec_add_safe(const struct timespec lhs,
-				  const struct timespec rhs)
+struct timespec64 timespec64_add_safe(const struct timespec64 lhs,
+				const struct timespec64 rhs)
 {
-	struct timespec res;
+	struct timespec64 res;
 
-	set_normalized_timespec(&res, lhs.tv_sec + rhs.tv_sec,
-				lhs.tv_nsec + rhs.tv_nsec);
+	set_normalized_timespec64(&res, (timeu64_t) lhs.tv_sec + rhs.tv_sec,
+			lhs.tv_nsec + rhs.tv_nsec);
 
-	if (res.tv_sec < lhs.tv_sec || res.tv_sec < rhs.tv_sec)
-		res.tv_sec = TIME_T_MAX;
+	if (unlikely(res.tv_sec < lhs.tv_sec || res.tv_sec < rhs.tv_sec)) {
+		res.tv_sec = TIME64_MAX;
+		res.tv_nsec = 0;
+	}
 
 	return res;
 }
+
+int get_timespec64(struct timespec64 *ts,
+		   const struct timespec __user *uts)
+{
+	struct timespec kts;
+	int ret;
+
+	ret = copy_from_user(&kts, uts, sizeof(kts));
+	if (ret)
+		return -EFAULT;
+
+	ts->tv_sec = kts.tv_sec;
+	ts->tv_nsec = kts.tv_nsec;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(get_timespec64);
+
+int put_timespec64(const struct timespec64 *ts,
+		   struct timespec __user *uts)
+{
+	struct timespec kts = {
+		.tv_sec = ts->tv_sec,
+		.tv_nsec = ts->tv_nsec
+	};
+	return copy_to_user(uts, &kts, sizeof(kts)) ? -EFAULT : 0;
+}
+EXPORT_SYMBOL_GPL(put_timespec64);

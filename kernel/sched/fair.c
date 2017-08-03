@@ -11171,7 +11171,8 @@ static inline int find_new_hmp_ilb(int type)
 	for_each_domain(call_cpu, sd) {
 		for_each_cpu_and(ilb, nohz.idle_cpus_mask,
 						sched_domain_span(sd)) {
-			if (idle_cpu(ilb) && (type != NOHZ_KICK_RESTRICT ||
+			if (!cpu_isolated(ilb) &&
+				idle_cpu(ilb) && (type != NOHZ_KICK_RESTRICT ||
 					cpu_max_power_cost(ilb) <=
 					cpu_max_power_cost(call_cpu))) {
 				rcu_read_unlock();
@@ -11235,21 +11236,16 @@ static void nohz_balancer_kick(int type)
 	return;
 }
 
-void nohz_balance_clear_nohz_mask(int cpu)
-{
-	if (likely(cpumask_test_cpu(cpu, nohz.idle_cpus_mask))) {
-		cpumask_clear_cpu(cpu, nohz.idle_cpus_mask);
-		atomic_dec(&nohz.nr_cpus);
-	}
-}
-
 static inline void nohz_balance_exit_idle(int cpu)
 {
 	if (unlikely(test_bit(NOHZ_TICK_STOPPED, nohz_flags(cpu)))) {
 		/*
 		 * Completely isolated CPUs don't ever set, so we must test.
 		 */
-		nohz_balance_clear_nohz_mask(cpu);
+		if (likely(cpumask_test_cpu(cpu, nohz.idle_cpus_mask))) {
+			cpumask_clear_cpu(cpu, nohz.idle_cpus_mask);
+			atomic_dec(&nohz.nr_cpus);
+		}
 		clear_bit(NOHZ_TICK_STOPPED, nohz_flags(cpu));
 	}
 }
@@ -11572,12 +11568,14 @@ static inline int _nohz_kick_needed_hmp(struct rq *rq, int cpu, int *type)
 static inline int _nohz_kick_needed(struct rq *rq, int cpu, int *type)
 {
 	unsigned long now = jiffies;
+	cpumask_t cpumask;
 
 	/*
 	 * None are in tickless mode and hence no need for NOHZ idle load
 	 * balancing.
 	 */
-	if (likely(!atomic_read(&nohz.nr_cpus)))
+	cpumask_andnot(&cpumask, nohz.idle_cpus_mask, cpu_isolated_mask);
+	if (cpumask_empty(&cpumask))
 		return 0;
 
 #ifdef CONFIG_SCHED_HMP
@@ -11680,6 +11678,14 @@ static void run_rebalance_domains(struct softirq_action *h)
 	struct rq *this_rq = this_rq();
 	enum cpu_idle_type idle = this_rq->idle_balance ?
 						CPU_IDLE : CPU_NOT_IDLE;
+
+	/*
+	 * Since core isolation doesn't update nohz.idle_cpus_mask, there
+	 * is a possibility this nohz kicked cpu could be isolated. Hence
+	 * return if the cpu is isolated.
+	 */
+	if (cpu_isolated(this_rq->cpu))
+		return;
 
 	/*
 	 * If this cpu has a pending nohz_balance_kick, then do the

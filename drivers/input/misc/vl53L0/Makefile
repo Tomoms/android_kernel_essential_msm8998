@@ -3,8 +3,8 @@
 #
 
 # Each configuration option enables a list of files.
-#FEATURE_USE_CCI := false
-FEATURE_USE_CCI := true
+FEATURE_USE_CCI := false
+#FEATURE_USE_CCI := true
 
 ifeq ($(FEATURE_USE_CCI), true)
 ccflags-y	+= -I $(srctree)/drivers/input/misc/vl53L0/inc -DCAMERA_CCI

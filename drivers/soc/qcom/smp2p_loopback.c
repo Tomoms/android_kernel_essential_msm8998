@@ -360,6 +360,7 @@ void *msm_smp2p_get_remote_mock(void)
 }
 EXPORT_SYMBOL(msm_smp2p_get_remote_mock);
 
+#ifdef CONFIG_MSM_SMP2P_TEST
 /**
  * msm_smp2p_get_remote_mock_smem_item - Returns a pointer to remote item.
  *
@@ -394,6 +395,7 @@ int smp2p_remote_mock_rx_interrupt(void)
 	return 0;
 }
 EXPORT_SYMBOL(smp2p_remote_mock_rx_interrupt);
+#endif
 
 /**
  * smp2p_remote_mock_tx_interrupt - Calls the SMP2P interrupt handler.

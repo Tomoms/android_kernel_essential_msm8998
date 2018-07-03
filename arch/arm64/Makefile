@@ -88,11 +88,11 @@ KBUILD_CFLAGS	+= $(call cc-ifversion, -ge, 0500, -DCONFIG_ARCH_SUPPORTS_INT128)
 ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
 KBUILD_CPPFLAGS	+= -mbig-endian
 AS		+= -EB
-LD		+= -EB
+LDFLAGS		+= -EB -maarch64elfb
 else
 KBUILD_CPPFLAGS	+= -mlittle-endian
 AS		+= -EL
-LD		+= -EL
+LDFLAGS		+= -EL -maarch64elf
 endif
 
 # msm8998 optimizations

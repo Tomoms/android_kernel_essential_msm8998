@@ -88,11 +88,13 @@ KBUILD_CFLAGS	+= $(call cc-ifversion, -ge, 0500, -DCONFIG_ARCH_SUPPORTS_INT128)
 ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
 KBUILD_CPPFLAGS	+= -mbig-endian
 AS		+= -EB
-LDFLAGS		+= -EB -maarch64elfb
+# Prefer the baremetal ELF build target, but not all toolchains include
+LDFLAGS		+= -EB $(call ld-option, -maarch64elfb, -maarch64linuxb)
 else
 KBUILD_CPPFLAGS	+= -mlittle-endian
 AS		+= -EL
-LDFLAGS		+= -EL -maarch64elf
+# Same as above, prefer ELF but fall back to linux target if needed.
+LDFLAGS		+= -EL $(call ld-option, -maarch64elf, -maarch64linux)
 endif
 
 # msm8998 optimizations

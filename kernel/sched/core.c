@@ -10294,13 +10294,6 @@ int sched_rr_handler(struct ctl_table *table, int write,
 	return ret;
 }
 
-#ifdef CONFIG_CGROUP_SCHED
-
-inline struct task_group *css_tg(struct cgroup_subsys_state *css)
-{
-	return css ? container_of(css, struct task_group, css) : NULL;
-}
-
 void threadgroup_change_begin(struct task_struct *tsk)
 {
 	might_sleep();
@@ -10310,6 +10303,13 @@ void threadgroup_change_begin(struct task_struct *tsk)
 void threadgroup_change_end(struct task_struct *tsk)
 {
 	cgroup_threadgroup_change_end(tsk);
+}
+
+#ifdef CONFIG_CGROUP_SCHED
+
+inline struct task_group *css_tg(struct cgroup_subsys_state *css)
+{
+	return css ? container_of(css, struct task_group, css) : NULL;
 }
 
 static struct cgroup_subsys_state *

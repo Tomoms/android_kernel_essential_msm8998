@@ -1,4 +1,4 @@
-ccflags-y := -Iinclude/drm
+ccflags-y := -I $(srctree)/include/drm
 
 obj-$(CONFIG_DRM_I2C_ADV7511) += adv7511.o
 

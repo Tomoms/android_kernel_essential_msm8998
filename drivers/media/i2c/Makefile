@@ -28,15 +28,15 @@ obj-$(CONFIG_VIDEO_ADV7393) += adv7393.o
 obj-$(CONFIG_VIDEO_ADV7604) += adv7604.o
 obj-$(CONFIG_VIDEO_ADV7842) += adv7842.o
 ifeq ($(CONFIG_MSM_AIS),y)
-ccflags-y += -Idrivers/media/platform/msm/ais
-ccflags-y += -Idrivers/media/platform/msm/ais/common
-ccflags-y += -Idrivers/media/platform/msm/ais/sensor/io
-ccflags-y += -Idrivers/media/platform/msm/ais/sensor/cci
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/common
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/sensor/io
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/sensor/cci
 else
-ccflags-y += -Idrivers/media/platform/msm/camera_v2
-ccflags-y += -Idrivers/media/platform/msm/camera_v2/common
-ccflags-y += -Idrivers/media/platform/msm/camera_v2/sensor/io
-ccflags-y += -Idrivers/media/platform/msm/camera_v2/sensor/cci
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/camera_v2
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/camera_v2/common
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/camera_v2/sensor/io
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/camera_v2/sensor/cci
 endif
 obj-$(CONFIG_VIDEO_ADV7481) += adv7481.o
 obj-$(CONFIG_VIDEO_TVTUNER) += tvtuner.o

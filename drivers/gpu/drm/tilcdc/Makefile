@@ -1,4 +1,4 @@
-ccflags-y := -Iinclude/drm
+ccflags-y := -I $(srctree)/include/drm
 ifeq (, $(findstring -W,$(EXTRA_CFLAGS)))
 	ccflags-y += -Werror
 endif

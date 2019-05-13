@@ -1,4 +1,4 @@
-ccflags-y := -Iinclude/drm
+ccflags-y := -I $(srctree)/include/drm
 
 obj-$(CONFIG_DRM_DW_HDMI) += dw_hdmi.o
 obj-$(CONFIG_DRM_DW_HDMI_AHB_AUDIO) += dw_hdmi-ahb-audio.o

@@ -1,4 +1,4 @@
-ccflags-y := -Iinclude/drm
+ccflags-y := -I $(srctree)/include/drm
 
 # Please keep these build lists sorted!
 

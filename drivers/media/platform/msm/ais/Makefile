@@ -1,14 +1,14 @@
-ccflags-y += -Idrivers/media/platform/msm/ais
-ccflags-y += -Idrivers/media/platform/msm/ais/sensor
-ccflags-y += -Idrivers/media/platform/msm/ais/codecs
-ccflags-y += -Idrivers/media/platform/msm/ais/isps
-ccflags-y += -Idrivers/media/platform/msm/ais/pproc
-ccflags-y += -Idrivers/media/platform/msm/ais/msm_vb2
-ccflags-y += -Idrivers/media/platform/msm/ais/camera
-ccflags-y += -Idrivers/media/platform/msm/ais/jpeg_10
-ccflags-y += -Idrivers/media/platform/msm/ais/jpeg_dma
-ccflags-y += -Idrivers/media/platform/msm/ais/fd
-ccflags-y += -Idrivers/media/platform/msm/ais/common
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/sensor
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/codecs
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/isps
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/pproc
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/msm_vb2
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/camera
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/jpeg_10
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/jpeg_dma
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/fd
+ccflags-y += -I $(srctree)/drivers/media/platform/msm/ais/common
 
 obj-$(CONFIG_MSM_AIS) += common/
 obj-$(CONFIG_MSM_AIS) += msm.o

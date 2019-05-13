@@ -1,11 +1,11 @@
-ccflags-y := -Iinclude/drm -Idrivers/gpu/drm/msm -Idrivers/gpu/drm/msm/dsi-staging
-ccflags-y += -Idrivers/gpu/drm/msm/hdmi
-ccflags-y += -Idrivers/gpu/drm/msm/hdmi-staging
-ccflags-$(CONFIG_DRM_MSM_DSI) += -Idrivers/gpu/drm/msm/dsi
-ccflags-$(CONFIG_SYNC) += -Idrivers/staging/android
-ccflags-$(CONFIG_DRM_MSM_DSI_PLL) += -Idrivers/gpu/drm/msm/dsi
-ccflags-y += -Idrivers/gpu/drm/msm/sde
-ccflags-$(CONFIG_DRM_MSM_EARLY_CARD) += -Idrivers/gpu/drm/msm/ekms
+ccflags-y := -I $(srctree)/include/drm -I $(srctree)/drivers/gpu/drm/msm -I $(srctree)/drivers/gpu/drm/msm/dsi-staging
+ccflags-y += -I $(srctree)/drivers/gpu/drm/msm/hdmi
+ccflags-y += -I $(srctree)/drivers/gpu/drm/msm/hdmi-staging
+ccflags-$(CONFIG_DRM_MSM_DSI) += -I $(srctree)/drivers/gpu/drm/msm/dsi
+ccflags-$(CONFIG_SYNC) += -I $(srctree)/drivers/staging/android
+ccflags-$(CONFIG_DRM_MSM_DSI_PLL) += -I $(srctree)/drivers/gpu/drm/msm/dsi
+ccflags-y += -I $(srctree)/drivers/gpu/drm/msm/sde
+ccflags-$(CONFIG_DRM_MSM_EARLY_CARD) += -I $(srctree)/drivers/gpu/drm/msm/ekms
 
 msm_drm-y := \
 	hdmi/hdmi.o \

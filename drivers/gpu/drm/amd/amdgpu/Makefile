@@ -2,10 +2,10 @@
 # Makefile for the drm device driver.  This driver provides support for the
 # Direct Rendering Infrastructure (DRI) in XFree86 4.1.0 and higher.
 
-ccflags-y := -Iinclude/drm -Idrivers/gpu/drm/amd/include/asic_reg \
-	-Idrivers/gpu/drm/amd/include \
-	-Idrivers/gpu/drm/amd/amdgpu \
-	-Idrivers/gpu/drm/amd/scheduler
+ccflags-y := -I $(srctree)/include/drm -I $(srctree)/drivers/gpu/drm/amd/include/asic_reg \
+	-I $(srctree)/drivers/gpu/drm/amd/include \
+	-I $(srctree)/drivers/gpu/drm/amd/amdgpu \
+	-I $(srctree)/drivers/gpu/drm/amd/scheduler
 
 amdgpu-y := amdgpu_drv.o
 

@@ -28,4 +28,4 @@ CFLAGS_trace.o := -I$(src)
 subdir-ccflags-y += -D__CHECK_ENDIAN__
 
 MSM_11AD_PATH = drivers/platform/msm/msm_11ad
-CFLAGS_wil_platform.o := -I$(MSM_11AD_PATH)
+CFLAGS_wil_platform.o := -I $(srctree)/$(MSM_11AD_PATH)

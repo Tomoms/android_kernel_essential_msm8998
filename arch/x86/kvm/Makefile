@@ -1,5 +1,5 @@
 
-ccflags-y += -Iarch/x86/kvm
+ccflags-y += -I $(srctree)/arch/x86/kvm
 
 CFLAGS_x86.o := -I.
 CFLAGS_svm.o := -I.

@@ -11,8 +11,8 @@ INCS = -include $(COMINC)/compat.h -I$(COMINC) -I$(WLAN_TOP)/os/$(OS)/include -I
 INCS += -I$(WLAN_TOP)/asf/include
 endif
 
-INCS += -Iinclude/nbuf -Iinclude/net -Iinclude/os
-INCS += -Inbuf/linux -Inet/linux -Ios/linux
+INCS += -I $(srctree)/include/nbuf -I $(srctree)/include/net -I $(srctree)/include/os
+INCS += -I $(srctree)/nbuf/linux -I $(srctree)/net/linux -I $(srctree)/os/linux
 INCS += -I$(WLAN_TOP)/../../include
 INCS += -I$(WLAN_TOP)/cmn_dev/qdf/inc
 INCS += -I$(WLAN_TOP)/cmn_dev/qdf/linux/src

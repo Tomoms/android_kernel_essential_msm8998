@@ -1,5 +1,5 @@
 
-ccflags-y := -Iinclude/drm
+ccflags-y := -I $(srctree)/include/drm
 
 vmwgfx-y := vmwgfx_execbuf.o vmwgfx_gmr.o vmwgfx_kms.o vmwgfx_drv.o \
 	    vmwgfx_fb.o vmwgfx_ioctl.o vmwgfx_resource.o vmwgfx_buffer.o \

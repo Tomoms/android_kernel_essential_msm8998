@@ -1,4 +1,4 @@
-ccflags-y := -Iinclude/drm
+ccflags-y := -I $(srctree)/include/drm
 ccflags-y += -I$(src)/include
 ccflags-y += -I$(src)/include/nvkm
 ccflags-y += -I$(src)/nvkm

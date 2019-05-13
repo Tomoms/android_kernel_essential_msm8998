@@ -1,4 +1,4 @@
-ccflags-y := -Idrivers/staging/android
+ccflags-y := -I $(srctree)/drivers/staging/android
 
 CFLAGS_adf.o := -I$(src)
 

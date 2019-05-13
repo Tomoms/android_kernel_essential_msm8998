@@ -1,4 +1,4 @@
-ccflags-y := -Ifs/ocfs2
+ccflags-y := -I $(srctree)/fs/ocfs2
 
 ccflags-y += -DCATCH_BH_JBD_RACES
 

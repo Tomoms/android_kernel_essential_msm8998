@@ -16,8 +16,8 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ccflags-y += \
-	-Idrivers/net/wireless/brcm80211/brcmfmac	\
-	-Idrivers/net/wireless/brcm80211/include
+	-I $(srctree)/drivers/net/wireless/brcm80211/brcmfmac	\
+	-I $(srctree)/drivers/net/wireless/brcm80211/include
 
 ccflags-y += -D__CHECK_ENDIAN__
 

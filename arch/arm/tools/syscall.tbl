@@ -406,3 +406,4 @@
 389	common	membarrier		sys_membarrier
 390	common	mlock2			sys_mlock2
 434	common	pidfd_open		sys_pidfd_open
+436	common	close_range		sys_close_range

@@ -323,7 +323,8 @@ static long ipa3_wan_ioctl(struct file *filp,
 	default:
 		retval = -ENOTTY;
 	}
-	kfree(param);
+	if (param != NULL)
+		kfree(param);
 	return retval;
 }
 

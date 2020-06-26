@@ -54,6 +54,7 @@
 #include <linux/writeback.h>
 #include <linux/shm.h>
 #include <linux/kcov.h>
+#include <linux/usermode_driver.h>
 
 #include "sched/tune.h"
 

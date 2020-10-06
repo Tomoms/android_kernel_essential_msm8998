@@ -44,7 +44,9 @@
 static struct device *apr_dev_ptr;
 static struct apr_q6 q6;
 static struct apr_client client[APR_DEST_MAX][APR_CLIENT_MAX];
+#if 0
 static void *apr_pkt_ctx;
+#endif
 static wait_queue_head_t dsp_wait;
 static wait_queue_head_t modem_wait;
 static bool is_modem_up;
@@ -83,12 +85,7 @@ static const struct file_operations apr_debug_ops = {
 };
 #endif
 
-#define APR_PKT_INFO(x...) \
-do { \
-	if (apr_pkt_ctx) \
-		ipc_log_string(apr_pkt_ctx, "<APR>: "x); \
-} while (0)
-
+#define APR_PKT_INFO(x...)
 
 struct apr_svc_table {
 	char name[64];
@@ -713,7 +710,9 @@ void apr_cb_func(void *buf, int len, void *priv)
 
 	if (unlikely(apr_cf_debug)) {
 		if (hdr->opcode == APR_BASIC_RSP_RESULT && data.payload) {
+#if 0
 			uint32_t *ptr = data.payload;
+#endif
 
 			APR_PKT_INFO(
 			"Rx: src_addr[0x%X] dest_addr[0x%X] opcode[0x%X] token[0x%X] rc[0x%X]",

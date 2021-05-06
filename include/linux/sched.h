@@ -2677,6 +2677,11 @@ static inline void sched_set_cluster_dstate(const cpumask_t *cluster_cpus,
 }
 #endif /* CONFIG_SCHED_HMP */
 
+void sched_migrate_to_cpumask_start(struct cpumask *old_mask,
+				    const struct cpumask *dest);
+void sched_migrate_to_cpumask_end(const struct cpumask *old_mask,
+				  const struct cpumask *dest);
+
 #ifdef CONFIG_NO_HZ_COMMON
 void calc_load_enter_idle(void);
 void calc_load_exit_idle(void);

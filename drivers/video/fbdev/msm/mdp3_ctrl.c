@@ -1667,7 +1667,7 @@ static int mdp3_histogram_start(struct mdp3_session_data *session,
 	mutex_lock(&session->histo_lock);
 
 	if (session->histo_status) {
-		pr_info("mdp3_histogram_start already started\n");
+		pr_debug("mdp3_histogram_start already started\n");
 		mutex_unlock(&session->histo_lock);
 		return 0;
 	}
@@ -2629,7 +2629,7 @@ int mdp3_ctrl_init(struct msm_fb_data_type *mfd)
 	int rc;
 	int splash_mismatch = 0;
 
-	pr_info("mdp3_ctrl_init\n");
+	pr_debug("mdp3_ctrl_init\n");
 	rc = mdp3_parse_dt_splash(mfd);
 	if (rc)
 		splash_mismatch = 1;

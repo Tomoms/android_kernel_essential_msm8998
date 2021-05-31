@@ -628,9 +628,8 @@ void blkdev_issue_flush_nowait(struct block_device *bdev, gfp_t gfp_mask)
 
 	bio = bio_alloc(gfp_mask, 0);
 	bio->bi_bdev = bdev;
-	bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FLUSH);
 
-	submit_bio_nowait(bio);
+	submit_bio_nowait(WRITE_FLUSH, bio);
 }
 EXPORT_SYMBOL(blkdev_issue_flush_nowait);
 

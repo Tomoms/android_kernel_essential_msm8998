@@ -904,11 +904,11 @@ static void submit_bio_nowait_endio(struct bio *bio)
  *
  * Simple wrapper around submit_bio() that takes care of bio_put() on completion
  */
-void submit_bio_nowait(struct bio *bio)
+void submit_bio_nowait(int rw, struct bio *bio)
 {
 	bio->bi_end_io = submit_bio_nowait_endio;
-	bio->bi_opf |= REQ_SYNC;
-	submit_bio(bio);
+	rw |= REQ_SYNC;
+	submit_bio(rw, bio);
 }
 EXPORT_SYMBOL(submit_bio_nowait);
 

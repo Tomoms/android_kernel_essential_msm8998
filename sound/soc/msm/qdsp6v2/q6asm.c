@@ -255,7 +255,6 @@ uint8_t q6asm_get_stream_id_from_token(uint32_t token)
 }
 EXPORT_SYMBOL(q6asm_get_stream_id_from_token);
 
-
 #ifdef CONFIG_DEBUG_FS
 #define OUT_BUFFER_SIZE 56
 #define IN_BUFFER_SIZE 24

@@ -1918,7 +1918,6 @@ int _ipa_read_ep_reg_v3_0(char *buf, int max_len, int pipe);
 #else
 static inline int _ipa_read_ep_reg_v3_0(char *buf, int max_len, int pipe) { return 0; }
 #endif
-
 void _ipa_enable_clks_v3_0(void);
 void _ipa_disable_clks_v3_0(void);
 struct device *ipa3_get_dma_dev(void);

@@ -2899,12 +2899,8 @@ out_array_args:
 	}
 
 out:
-<<<<<<< HEAD
-	kfree(array_buf);
-	kfree(mbuf);
-=======
+	kvfree(array_buf);
 	kvfree(mbuf);
->>>>>>> a0277a72bb76 (CHROMIUM: [media] v4l2-core: Use kvmalloc() for potentially big allocations)
 	return err;
 }
 EXPORT_SYMBOL(video_usercopy);

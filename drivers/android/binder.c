@@ -188,8 +188,8 @@ static inline void binder_stats_created(enum binder_stat_types type)
 struct binder_transaction_log binder_transaction_log;
 struct binder_transaction_log binder_transaction_log_failed;
 
+static struct kmem_cache *binder_eproc_pool;
 static struct kmem_cache *binder_node_pool;
-static struct kmem_cache *binder_proc_pool;
 static struct kmem_cache *binder_ref_death_pool;
 static struct kmem_cache *binder_ref_pool;
 static struct kmem_cache *binder_thread_pool;
@@ -2872,7 +2872,7 @@ static void binder_transaction(struct binder_proc *proc,
 		t->from = thread;
 	else
 		t->from = NULL;
-	t->sender_euid = task_euid(proc->tsk);
+	t->sender_euid = binder_get_cred(proc)->euid;
 	t->to_proc = target_proc;
 	t->to_thread = target_thread;
 	t->code = tr->code;
@@ -4507,6 +4507,8 @@ static struct binder_thread *binder_get_thread(struct binder_proc *proc)
 static void binder_free_proc(struct binder_proc *proc)
 {
 	struct binder_device *device;
+	struct binder_proc_ext *eproc =
+		container_of(proc, struct binder_proc_ext, proc);
 
 	BUG_ON(!list_empty(&proc->todo));
 	BUG_ON(!list_empty(&proc->delivered_death));
@@ -4520,9 +4522,9 @@ static void binder_free_proc(struct binder_proc *proc)
 	}
 	binder_alloc_deferred_release(&proc->alloc);
 	put_task_struct(proc->tsk);
-	put_cred(proc->cred);
+	put_cred(eproc->cred);
 	binder_stats_deleted(BINDER_STAT_PROC);
-	kmem_cache_free(binder_proc_pool, proc);
+	kmem_cache_free(binder_eproc_pool, eproc);
 }
 
 static void binder_free_thread(struct binder_thread *thread)
@@ -5220,6 +5222,7 @@ err_bad_arg:
 static int binder_open(struct inode *nodp, struct file *filp)
 {
 	struct binder_proc *proc, *itr;
+	struct binder_proc_ext *eproc;
 	struct binder_device *binder_dev;
 	struct binderfs_info *info;
 	struct dentry *binder_binderfs_dir_entry_proc = NULL;
@@ -5228,7 +5231,8 @@ static int binder_open(struct inode *nodp, struct file *filp)
 	binder_debug(BINDER_DEBUG_OPEN_CLOSE, "%s: %d:%d\n", __func__,
 		     current->group_leader->pid, current->pid);
 
-	proc = kmem_cache_zalloc(binder_proc_pool, GFP_KERNEL);
+	eproc = kmem_cache_zalloc(binder_eproc_pool, GFP_KERNEL);
+	proc = &eproc->proc;
 	if (proc == NULL)
 		return -ENOMEM;
 	spin_lock_init(&proc->inner_lock);
@@ -5236,6 +5240,7 @@ static int binder_open(struct inode *nodp, struct file *filp)
 	atomic_set(&proc->tmp_ref, 0);
 	get_task_struct(current->group_leader);
 	proc->tsk = current->group_leader;
+	eproc->cred = get_cred(filp->f_cred);
 	proc->cred = get_cred(filp->f_cred);
 	INIT_LIST_HEAD(&proc->todo);
 	init_waitqueue_head(&proc->freeze_wait);
@@ -6137,13 +6142,13 @@ static int __init binder_create_pools(void)
 	if (ret)
 		return ret;
 
+	binder_eproc_pool = KMEM_CACHE(binder_proc_ext, SLAB_HWCACHE_ALIGN);
+	if (!binder_eproc_pool)
+		goto err_eproc_pool;
+
 	binder_node_pool = KMEM_CACHE(binder_node, SLAB_HWCACHE_ALIGN);
 	if (!binder_node_pool)
 		goto err_node_pool;
-
-	binder_proc_pool = KMEM_CACHE(binder_proc, SLAB_HWCACHE_ALIGN);
-	if (!binder_proc_pool)
-		goto err_proc_pool;
 
 	binder_ref_death_pool = KMEM_CACHE(binder_ref_death, SLAB_HWCACHE_ALIGN);
 	if (!binder_ref_death_pool)
@@ -6176,10 +6181,10 @@ err_thread_pool:
 err_ref_pool:
 	kmem_cache_destroy(binder_ref_death_pool);
 err_ref_death_pool:
-	kmem_cache_destroy(binder_proc_pool);
-err_proc_pool:
 	kmem_cache_destroy(binder_node_pool);
 err_node_pool:
+	kmem_cache_destroy(binder_eproc_pool);
+err_eproc_pool:
 	binder_buffer_pool_destroy();
 	return -ENOMEM;
 }
@@ -6187,8 +6192,8 @@ err_node_pool:
 static void __init binder_destroy_pools(void)
 {
 	binder_buffer_pool_destroy();
+	kmem_cache_destroy(binder_eproc_pool);
 	kmem_cache_destroy(binder_node_pool);
-	kmem_cache_destroy(binder_proc_pool);
 	kmem_cache_destroy(binder_ref_death_pool);
 	kmem_cache_destroy(binder_ref_pool);
 	kmem_cache_destroy(binder_thread_pool);

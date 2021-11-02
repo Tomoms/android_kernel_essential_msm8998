@@ -653,6 +653,9 @@ int __init early_brk64(unsigned long addr, unsigned int esr,
 	return bug_handler(regs, esr) != DBG_HOOK_HANDLED;
 }
 
+extern u32 aarch64_insn_decode_register(enum aarch64_insn_register_type type,
+					u32 insn);
+
 static int refcount_overflow_handler(struct pt_regs *regs, unsigned int esr)
 {
 	u32 dummy_cbz = le32_to_cpup((__le32 *)(regs->pc + 4));

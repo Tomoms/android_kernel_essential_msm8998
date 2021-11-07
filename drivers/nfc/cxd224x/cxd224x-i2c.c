@@ -406,7 +406,7 @@ dt_err:
 }
 #endif
 
-static int cxd224x_probe(struct i2c_client *client,
+static __refdata int cxd224x_probe(struct i2c_client *client,
 			   const struct i2c_device_id *id)
 {
 	int ret;

@@ -689,6 +689,7 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
 else
 ifeq ($(cc-name), clang)
 KBUILD_CFLAGS	+= -O3 $(call cc-option,-fsanitize=local-init) $(SCRIPT_OPT_FLAGS)
+KBUILD_CFLAGS	+= -mcpu=cortex-a73 -mtune=cortex-a73
 else
 KBUILD_CFLAGS   += -O2
 endif

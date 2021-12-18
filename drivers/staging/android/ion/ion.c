@@ -232,30 +232,7 @@ int __ion_phys(struct ion_buffer *buffer, ion_phys_addr_t *addr, size_t *len)
 	if (!heap->ops->phys)
 		return -ENODEV;
 
-<<<<<<< HEAD
 	return heap->ops->phys(heap, buffer, addr, len);
-=======
-static void *ion_buffer_kmap_get(struct ion_buffer *buffer)
-{
-	void *vaddr;
-
-	if (buffer->kmap_cnt) {
-		if (buffer->kmap_cnt == INT_MAX)
-			return ERR_PTR(-EOVERFLOW);
-
-		buffer->kmap_cnt++;
-		return buffer->vaddr;
-	}
-	vaddr = buffer->heap->ops->map_kernel(buffer->heap, buffer);
-	if (WARN_ONCE(vaddr == NULL,
-			"heap->ops->map_kernel should return ERR_PTR on error"))
-		return ERR_PTR(-EINVAL);
-	if (IS_ERR(vaddr))
-		return vaddr;
-	buffer->vaddr = vaddr;
-	buffer->kmap_cnt++;
-	return vaddr;
->>>>>>> da3300c5b2cd (Merge tag 'v4.4.295' of git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux into lineage-18.1_4.4.295)
 }
 
 static struct sg_table *ion_dup_sg_table(struct device *dev,
@@ -268,115 +245,12 @@ static struct sg_table *ion_dup_sg_table(struct device *dev,
 	struct sg_table *table;
 	bool found = false;
 
-<<<<<<< HEAD
 	spin_lock(&buffer->freelist_lock);
 	list_for_each_entry(bmap, &buffer->map_freelist, list) {
 		if (bmap->dev == dev) {
 			list_del(&bmap->list);
 			found = true;
 			break;
-=======
-	if (handle->kmap_cnt) {
-		if (handle->kmap_cnt == INT_MAX)
-			return ERR_PTR(-EOVERFLOW);
-
-		handle->kmap_cnt++;
-		return buffer->vaddr;
-	}
-	vaddr = ion_buffer_kmap_get(buffer);
-	if (IS_ERR(vaddr))
-		return vaddr;
-	handle->kmap_cnt++;
-	return vaddr;
-}
-
-static void ion_buffer_kmap_put(struct ion_buffer *buffer)
-{
-	buffer->kmap_cnt--;
-	if (!buffer->kmap_cnt) {
-		buffer->heap->ops->unmap_kernel(buffer->heap, buffer);
-		buffer->vaddr = NULL;
-	}
-}
-
-static void ion_handle_kmap_put(struct ion_handle *handle)
-{
-	struct ion_buffer *buffer = handle->buffer;
-
-	if (!handle->kmap_cnt) {
-		WARN(1, "%s: Double unmap detected! bailing...\n", __func__);
-		return;
-	}
-	handle->kmap_cnt--;
-	if (!handle->kmap_cnt)
-		ion_buffer_kmap_put(buffer);
-}
-
-void *ion_map_kernel(struct ion_client *client, struct ion_handle *handle)
-{
-	struct ion_buffer *buffer;
-	void *vaddr;
-
-	mutex_lock(&client->lock);
-	if (!ion_handle_validate(client, handle)) {
-		pr_err("%s: invalid handle passed to map_kernel.\n",
-		       __func__);
-		mutex_unlock(&client->lock);
-		return ERR_PTR(-EINVAL);
-	}
-
-	buffer = handle->buffer;
-
-	if (!handle->buffer->heap->ops->map_kernel) {
-		pr_err("%s: map_kernel is not implemented by this heap.\n",
-		       __func__);
-		mutex_unlock(&client->lock);
-		return ERR_PTR(-ENODEV);
-	}
-
-	mutex_lock(&buffer->lock);
-	vaddr = ion_handle_kmap_get(handle);
-	mutex_unlock(&buffer->lock);
-	mutex_unlock(&client->lock);
-	return vaddr;
-}
-EXPORT_SYMBOL(ion_map_kernel);
-
-void ion_unmap_kernel(struct ion_client *client, struct ion_handle *handle)
-{
-	struct ion_buffer *buffer;
-
-	mutex_lock(&client->lock);
-	buffer = handle->buffer;
-	mutex_lock(&buffer->lock);
-	ion_handle_kmap_put(handle);
-	mutex_unlock(&buffer->lock);
-	mutex_unlock(&client->lock);
-}
-EXPORT_SYMBOL(ion_unmap_kernel);
-
-static struct mutex debugfs_mutex;
-static struct rb_root *ion_root_client;
-static int is_client_alive(struct ion_client *client)
-{
-	struct rb_node *node;
-	struct ion_client *tmp;
-	struct ion_device *dev;
-
-	node = ion_root_client->rb_node;
-	dev = container_of(ion_root_client, struct ion_device, clients);
-
-	down_read(&dev->lock);
-	while (node) {
-		tmp = rb_entry(node, struct ion_client, node);
-		if (client < tmp) {
-			node = node->rb_left;
-		} else if (client > tmp) {
-			node = node->rb_right;
-		} else {
-			up_read(&dev->lock);
-			return 1;
->>>>>>> da3300c5b2cd (Merge tag 'v4.4.295' of git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux into lineage-18.1_4.4.295)
 		}
 	}
 	spin_unlock(&buffer->freelist_lock);

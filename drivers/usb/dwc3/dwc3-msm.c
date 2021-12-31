@@ -2243,7 +2243,7 @@ static int dwc3_msm_suspend(struct dwc3_msm *mdwc, bool hibernation)
 
 	/* kick_sm if it is waiting for lpm sequence to finish */
 	if (test_and_clear_bit(WAIT_FOR_LPM, &mdwc->inputs))
-		queue_delayed_work(mdwc->sm_usb_wq, &mdwc->sm_work, 0);
+		queue_delayed_work(system_freezable_wq, &mdwc->sm_work, 0);
 
 	mutex_unlock(&mdwc->suspend_resume_mutex);
 

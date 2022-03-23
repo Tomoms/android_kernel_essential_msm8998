@@ -898,10 +898,8 @@ int btrfs_test_free_space_cache(void)
 	}
 
 	root = btrfs_alloc_dummy_root();
-	if (IS_ERR(root)) {
-		ret = PTR_ERR(root);
+	if (!root)
 		goto out;
-	}
 
 	root->fs_info = btrfs_alloc_dummy_fs_info();
 	if (!root->fs_info)

@@ -331,27 +331,6 @@ static void put_caching_control(struct btrfs_caching_control *ctl)
 		kfree(ctl);
 }
 
-#ifdef CONFIG_BTRFS_DEBUG
-static void fragment_free_space(struct btrfs_root *root,
-				struct btrfs_block_group_cache *block_group)
-{
-	u64 start = block_group->key.objectid;
-	u64 len = block_group->key.offset;
-	u64 chunk = block_group->flags & BTRFS_BLOCK_GROUP_METADATA ?
-		root->nodesize : root->sectorsize;
-	u64 step = chunk << 1;
-
-	while (len > chunk) {
-		btrfs_remove_free_space(block_group, start, chunk);
-		start += step;
-		if (len < step)
-			len = 0;
-		else
-			len -= step;
-	}
-}
-#endif
-
 /*
  * this is only called by cache_block_group, since we could have freed extents
  * we need to check the pinned_extents for any extents that can't be used yet
@@ -408,7 +387,6 @@ static noinline void caching_thread(struct btrfs_work *work)
 	u64 last = 0;
 	u32 nritems;
 	int ret = -ENOMEM;
-	bool wakeup = true;
 
 	caching_ctl = container_of(work, struct btrfs_caching_control, work);
 	block_group = caching_ctl->block_group;
@@ -421,15 +399,6 @@ static noinline void caching_thread(struct btrfs_work *work)
 
 	last = max_t(u64, block_group->key.objectid, BTRFS_SUPER_INFO_OFFSET);
 
-#ifdef CONFIG_BTRFS_DEBUG
-	/*
-	 * If we're fragmenting we don't want to make anybody think we can
-	 * allocate from this block group until we've had a chance to fragment
-	 * the free space.
-	 */
-	if (btrfs_should_fragment_free_space(extent_root, block_group))
-		wakeup = false;
-#endif
 	/*
 	 * We don't want to deadlock with somebody trying to allocate a new
 	 * extent for the extent root while also trying to search the extent
@@ -471,8 +440,7 @@ next:
 
 			if (need_resched() ||
 			    rwsem_is_contended(&fs_info->commit_root_sem)) {
-				if (wakeup)
-					caching_ctl->progress = last;
+				caching_ctl->progress = last;
 				btrfs_release_path(path);
 				up_read(&fs_info->commit_root_sem);
 				mutex_unlock(&caching_ctl->mutex);
@@ -495,8 +463,7 @@ next:
 			key.offset = 0;
 			key.type = BTRFS_EXTENT_ITEM_KEY;
 
-			if (wakeup)
-				caching_ctl->progress = last;
+			caching_ctl->progress = last;
 			btrfs_release_path(path);
 			goto next;
 		}
@@ -523,8 +490,7 @@ next:
 
 			if (total_found > (1024 * 1024 * 2)) {
 				total_found = 0;
-				if (wakeup)
-					wake_up(&caching_ctl->wait);
+				wake_up(&caching_ctl->wait);
 			}
 		}
 		path->slots[0]++;
@@ -534,27 +500,13 @@ next:
 	total_found += add_new_free_space(block_group, fs_info, last,
 					  block_group->key.objectid +
 					  block_group->key.offset);
+	caching_ctl->progress = (u64)-1;
+
 	spin_lock(&block_group->lock);
 	block_group->caching_ctl = NULL;
 	block_group->cached = BTRFS_CACHE_FINISHED;
 	spin_unlock(&block_group->lock);
 
-#ifdef CONFIG_BTRFS_DEBUG
-	if (btrfs_should_fragment_free_space(extent_root, block_group)) {
-		u64 bytes_used;
-
-		spin_lock(&block_group->space_info->lock);
-		spin_lock(&block_group->lock);
-		bytes_used = block_group->key.offset -
-			btrfs_block_group_used(&block_group->item);
-		block_group->space_info->bytes_used += bytes_used >> 1;
-		spin_unlock(&block_group->lock);
-		spin_unlock(&block_group->space_info->lock);
-		fragment_free_space(extent_root, block_group);
-	}
-#endif
-
-	caching_ctl->progress = (u64)-1;
 err:
 	btrfs_free_path(path);
 	up_read(&fs_info->commit_root_sem);
@@ -654,22 +606,6 @@ static int cache_block_group(struct btrfs_block_group_cache *cache,
 			}
 		}
 		spin_unlock(&cache->lock);
-#ifdef CONFIG_BTRFS_DEBUG
-		if (ret == 1 &&
-		    btrfs_should_fragment_free_space(fs_info->extent_root,
-						     cache)) {
-			u64 bytes_used;
-
-			spin_lock(&cache->space_info->lock);
-			spin_lock(&cache->lock);
-			bytes_used = cache->key.offset -
-				btrfs_block_group_used(&cache->item);
-			cache->space_info->bytes_used += bytes_used >> 1;
-			spin_unlock(&cache->lock);
-			spin_unlock(&cache->space_info->lock);
-			fragment_free_space(fs_info->extent_root, cache);
-		}
-#endif
 		mutex_unlock(&caching_ctl->mutex);
 
 		wake_up(&caching_ctl->wait);
@@ -10114,14 +10050,6 @@ int btrfs_make_block_group(struct btrfs_trans_handle *trans,
 
 	free_excluded_extents(root, cache);
 
-#ifdef CONFIG_BTRFS_DEBUG
-	if (btrfs_should_fragment_free_space(root, cache)) {
-		u64 new_bytes_used = size - bytes_used;
-
-		bytes_used += new_bytes_used >> 1;
-		fragment_free_space(root, cache);
-	}
-#endif
 	/*
 	 * Call to ensure the corresponding space_info object is created and
 	 * assigned to our block group, but don't update its counters just yet.

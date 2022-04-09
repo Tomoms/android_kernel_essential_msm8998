@@ -12,7 +12,6 @@
 
 #include <linux/refcount.h>
 
-#include <asm-generic/barrier.h>
 #include <asm/atomic.h>
 
 static __always_inline void refcount_add(int i, refcount_t *r)

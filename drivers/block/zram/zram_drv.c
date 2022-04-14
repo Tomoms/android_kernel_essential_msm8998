@@ -419,38 +419,24 @@ static DEVICE_ATTR_RO(io_stat);
 static DEVICE_ATTR_RO(mm_stat);
 static DEVICE_ATTR_RO(debug_stat);
 
-static void zram_slot_lock(struct zram *zram, u32 index)
-{
-	struct zram_meta *meta = zram->meta;
-
-	bit_spin_lock(ZRAM_ACCESS, &meta->table[index].value);
-}
-
-static void zram_slot_unlock(struct zram *zram, u32 index)
-{
-	struct zram_meta *meta = zram->meta;
-
-	bit_spin_unlock(ZRAM_ACCESS, &meta->table[index].value);
-}
-
 static bool zram_same_page_read(struct zram *zram, u32 index,
 				struct page *page,
 				unsigned int offset, unsigned int len)
 {
 	struct zram_meta *meta = zram->meta;
 
-	zram_slot_lock(zram, index);
+	bit_spin_lock(ZRAM_ACCESS, &meta->table[index].value);
 	if (unlikely(!meta->table[index].handle) ||
 			zram_test_flag(meta, index, ZRAM_SAME)) {
 		void *mem;
 
-		zram_slot_unlock(zram, index);
+		bit_spin_unlock(ZRAM_ACCESS, &meta->table[index].value);
 		mem = kmap_atomic(page);
 		zram_fill_page(mem + offset, len, meta->table[index].element);
 		kunmap_atomic(mem);
 		return true;
 	}
-	zram_slot_unlock(zram, index);
+	bit_spin_unlock(ZRAM_ACCESS, &meta->table[index].value);
 
 	return false;
 }
@@ -466,11 +452,11 @@ static bool zram_same_page_write(struct zram *zram, u32 index,
 
 		kunmap_atomic(mem);
 		/* Free memory associated with this sector now. */
-		zram_slot_lock(zram, index);
+		bit_spin_lock(ZRAM_ACCESS, &meta->table[index].value);
 		zram_free_page(zram, index);
 		zram_set_flag(meta, index, ZRAM_SAME);
 		zram_set_element(meta, index, element);
-		zram_slot_unlock(zram, index);
+		bit_spin_unlock(ZRAM_ACCESS, &meta->table[index].value);
 
 		atomic64_inc(&zram->stats.same_pages);
 		return true;
@@ -577,7 +563,7 @@ static int zram_decompress_page(struct zram *zram, struct page *page, u32 index)
 	if (zram_same_page_read(zram, index, page, 0, PAGE_SIZE))
 		return 0;
 
-	zram_slot_lock(zram, index);
+	bit_spin_lock(ZRAM_ACCESS, &meta->table[index].value);
 	handle = meta->table[index].handle;
 	size = zram_get_obj_size(meta, index);
 
@@ -596,7 +582,7 @@ static int zram_decompress_page(struct zram *zram, struct page *page, u32 index)
 		zcomp_stream_put(zram->comp);
 	}
 	zs_unmap_object(meta->mem_pool, handle);
-	zram_slot_unlock(zram, index);
+	bit_spin_unlock(ZRAM_ACCESS, &meta->table[index].value);
 
 	/* Should NEVER happen. Return bio error if it does. */
 	if (unlikely(ret))
@@ -745,11 +731,11 @@ static int __zram_bvec_write(struct zram *zram, struct bio_vec *bvec, u32 index)
 	 * Free memory associated with this sector
 	 * before overwriting unused sectors.
 	 */
-	zram_slot_lock(zram, index);
+	bit_spin_lock(ZRAM_ACCESS, &meta->table[index].value);
 	zram_free_page(zram, index);
 	meta->table[index].handle = handle;
 	zram_set_obj_size(meta, index, comp_len);
-	zram_slot_unlock(zram, index);
+	bit_spin_unlock(ZRAM_ACCESS, &meta->table[index].value);
 
 	/* Update stats */
 	atomic64_add(comp_len, &zram->stats.compr_data_size);
@@ -807,6 +793,7 @@ static void zram_bio_discard(struct zram *zram, u32 index,
 			     int offset, struct bio *bio)
 {
 	size_t n = bio->bi_iter.bi_size;
+	struct zram_meta *meta = zram->meta;
 
 	/*
 	 * zram manages data in physical block size units. Because logical block
@@ -827,9 +814,9 @@ static void zram_bio_discard(struct zram *zram, u32 index,
 	}
 
 	while (n >= PAGE_SIZE) {
-		zram_slot_lock(zram, index);
+		bit_spin_lock(ZRAM_ACCESS, &meta->table[index].value);
 		zram_free_page(zram, index);
-		zram_slot_unlock(zram, index);
+		bit_spin_unlock(ZRAM_ACCESS, &meta->table[index].value);
 		atomic64_inc(&zram->stats.notify_free);
 		index++;
 		n -= PAGE_SIZE;
@@ -938,9 +925,9 @@ static void zram_slot_free_notify(struct block_device *bdev,
 	zram = bdev->bd_disk->private_data;
 	meta = zram->meta;
 
-	zram_slot_lock(zram, index);
+	bit_spin_lock(ZRAM_ACCESS, &meta->table[index].value);
 	zram_free_page(zram, index);
-	zram_slot_unlock(zram, index);
+	bit_spin_unlock(ZRAM_ACCESS, &meta->table[index].value);
 	atomic64_inc(&zram->stats.notify_free);
 }
 

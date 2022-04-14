@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  *  lzodefs.h -- architecture, OS and compiler specific defines
  *

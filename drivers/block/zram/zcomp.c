@@ -95,6 +95,11 @@ bool zcomp_available_algorithm(const char *comp)
 	return find_backend(comp) != NULL;
 }
 
+bool zcomp_set_max_streams(struct zcomp *comp, int num_strm)
+{
+	return true;
+}
+
 struct zcomp_strm *zcomp_strm_find(struct zcomp *comp)
 {
 	return *get_cpu_ptr(comp->stream);

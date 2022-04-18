@@ -645,4 +645,9 @@ int LZ4_decompress_safe_usingDict(const char *source, char *dest,
 int LZ4_decompress_fast_usingDict(const char *source, char *dest,
 	int originalSize, const char *dictStart, int dictSize);
 
+int lz4_decompress_unknownoutputsize(const unsigned char *src, size_t src_len,
+	unsigned char *dest, size_t *dest_len);
+int lz4_compress(const unsigned char *src, size_t src_len, unsigned char *dst,
+	size_t *dst_len, void *wrkmem);
+
 #endif

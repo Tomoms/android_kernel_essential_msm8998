@@ -7,7 +7,7 @@ mymake() {
 setenv () {
 	export ARCH=arm64
 	export SUBARCH=arm64
-	export PATH=/mnt/data/android/proton-clang/bin:$PATH
+	export PATH=/mnt/data/android/atom-x-clang/bin:$PATH
 }
 
 checkenv () {

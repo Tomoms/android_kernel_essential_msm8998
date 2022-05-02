@@ -1,13 +1,13 @@
 #!/bin/bash
 
 mymake() {
-	make CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- LD=ld.lld ${1}
+	make CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-  LD=ld.lld ${1}
 }
 
 setenv () {
 	export ARCH=arm64
 	export SUBARCH=arm64
-	export PATH=/mnt/data/android/atom-x-clang/bin:$PATH
+	export PATH=/mnt/data/android/proprietary_vendor_qcom_sdclang/compiler/bin:/mnt/data/android/atom-x-clang/bin:$PATH
 }
 
 checkenv () {

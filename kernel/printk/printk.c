@@ -59,7 +59,7 @@
 extern void printascii(char *);
 #endif
 
-static __read_mostly bool enabled = 1;
+static __read_mostly bool enabled;
 module_param(enabled, bool, S_IRUGO | S_IWUSR);
 
 int console_printk[4] = {

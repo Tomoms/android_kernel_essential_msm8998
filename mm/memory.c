@@ -2593,9 +2593,9 @@ static int do_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		 */
 		unlock_page(old_page);
 		wp_page_reuse(mm, vma, address, page_table, ptl,
-			      orig_pte, old_page, 0, 0);
+			      orig_pte, old_page, 0, 0, vmf2);
 		return VM_FAULT_WRITE;
-	} else if (unlikely((vmf2->vm_flags & (VM_WRITE|VM_SHARED)) ==
+	} else if (unlikely((vmf2->vma_flags & (VM_WRITE|VM_SHARED)) ==
 					(VM_WRITE|VM_SHARED))) {
 		return wp_page_shared(mm, vma, address, page_table, pmd,
 				      ptl, orig_pte, old_page, vmf2);

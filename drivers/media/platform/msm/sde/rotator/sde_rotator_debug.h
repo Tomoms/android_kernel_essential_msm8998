@@ -69,23 +69,11 @@ struct sde_rotator_debug_base {
 };
 
 #if defined(CONFIG_DEBUG_FS)
-void sde_rot_evtlog(const char *name, int line, int flag, ...);
-void sde_rot_evtlog_tout_handler(bool queue, const char *name, ...);
-
 struct dentry *sde_rotator_create_debugfs(
 		struct sde_rotator_device *rot_dev);
 
 void sde_rotator_destroy_debugfs(struct dentry *debugfs);
 #else
-static inline
-void sde_rot_evtlog(const char *name, int line, int flag, ...)
-{
-}
-static inline
-void sde_rot_evtlog_tout_handler(bool queue, const char *name, ...)
-{
-}
-
 static inline
 struct dentry *sde_rotator_create_debugfs(
 		struct sde_rotator_device *rot_dev)

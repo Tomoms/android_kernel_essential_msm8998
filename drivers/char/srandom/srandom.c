@@ -20,7 +20,7 @@
 #define SDEVICE_NAME "srandom"      /* Dev name as it appears in /proc/devices */
 #define APP_VERSION "1.41.0"
 #define THREAD_SLEEP_VALUE 11       /* Amount of time in seconds, the background thread should sleep between each operation. Recommended prime */
-#define PAID 0
+#define PAID 1
 
 #if ULTRA_HIGH_SPEED_MODE
     #define rndArraySize 65             /* Size of Array.  Must be >= 65. (actual size used will be 65, anything greater is thrown away).*/

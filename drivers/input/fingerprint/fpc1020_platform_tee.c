@@ -283,8 +283,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 	if (!fpc1020) {
 		dev_err(dev,
 			"failed to allocate memory for struct fpc1020_data\n");
-		rc = -ENOMEM;
-		goto exit;
+		return -ENOMEM;
 	}
 
 	fpc1020->dev = dev;
@@ -292,30 +291,27 @@ static int fpc1020_probe(struct platform_device *pdev)
 
 	if (!np) {
 		dev_err(dev, "no of node found\n");
-		rc = -EINVAL;
-		goto exit;
+		return -EINVAL;
 	}
 
 	rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_irq",
 			&fpc1020->irq_gpio);
 	if (rc)
-		goto exit;
+		return rc;
 	rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_rst",
 			&fpc1020->rst_gpio);
 	if (rc)
-		goto exit;
+		return rc;
 
 	fpc1020->fingerprint_pinctrl = devm_pinctrl_get(dev);
 	if (IS_ERR(fpc1020->fingerprint_pinctrl)) {
 		if (PTR_ERR(fpc1020->fingerprint_pinctrl) == -EPROBE_DEFER) {
 			dev_info(dev, "pinctrl not ready\n");
-			rc = -EPROBE_DEFER;
-			goto exit;
+			return -EPROBE_DEFER;
 		}
 		dev_err(dev, "Target does not use pinctrl\n");
 		fpc1020->fingerprint_pinctrl = NULL;
-		rc = -EINVAL;
-		goto exit;
+		return -EINVAL;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(fpc1020->pinctrl_state); i++) {
@@ -324,8 +320,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 			pinctrl_lookup_state(fpc1020->fingerprint_pinctrl, n);
 		if (IS_ERR(state)) {
 			dev_err(dev, "cannot find '%s'\n", n);
-			rc = -EINVAL;
-			goto exit;
+			return -EINVAL;
 		}
 		dev_info(dev, "found pin control %s\n", n);
 		fpc1020->pinctrl_state[i] = state;
@@ -333,10 +328,10 @@ static int fpc1020_probe(struct platform_device *pdev)
 
 	rc = select_pin_ctl(fpc1020, "fpc1020_reset_reset");
 	if (rc)
-		goto exit;
+		return rc;
 	rc = select_pin_ctl(fpc1020, "fpc1020_irq_active");
 	if (rc)
-		goto exit;
+		return rc;
 
 	atomic_set(&fpc1020->wakeup_enabled, 0);
 
@@ -352,7 +347,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 	if (rc) {
 		dev_err(dev, "could not request irq %d\n",
 				gpio_to_irq(fpc1020->irq_gpio));
-		goto exit;
+		return rc;
 	}
 
 	dev_dbg(dev, "requested irq %d\n", gpio_to_irq(fpc1020->irq_gpio));
@@ -365,14 +360,13 @@ static int fpc1020_probe(struct platform_device *pdev)
 	rc = sysfs_create_group(&dev->kobj, &attribute_group);
 	if (rc) {
 		dev_err(dev, "could not create sysfs\n");
-		goto exit;
+		return rc;
 	}
 
 	rc = hw_reset(fpc1020);
 
 	dev_info(dev, "%s: ok\n", __func__);
 
-exit:
 	return rc;
 }
 

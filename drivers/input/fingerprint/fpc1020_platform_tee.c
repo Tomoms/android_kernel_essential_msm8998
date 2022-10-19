@@ -169,18 +169,16 @@ exit:
 static ssize_t hw_reset_set(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
-	int rc;
 	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
 
 	if (!strcmp(buf, "reset")) {
 		mutex_lock(&fpc1020->lock);
-		rc = hw_reset(fpc1020);
+		hw_reset(fpc1020);
 		mutex_unlock(&fpc1020->lock);
-	} else {
-		return -EINVAL;
+		return count;
 	}
 
-	return rc ? rc : count;
+	return -EINVAL;
 }
 static DEVICE_ATTR(hw_reset, S_IWUSR, NULL, hw_reset_set);
 

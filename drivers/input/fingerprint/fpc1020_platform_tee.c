@@ -75,7 +75,7 @@ struct fpc1020_data {
  * backwards compatibility. Only prints a debug print that it is
  * disabled.
  */
-static ssize_t clk_enable_set(struct device *dev,
+static inline ssize_t clk_enable_set(struct device *dev,
 	struct device_attribute *attr,
 	const char *buf, size_t count)
 {

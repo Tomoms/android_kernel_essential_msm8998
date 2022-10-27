@@ -61,6 +61,7 @@ struct erofs_sb_info {
 
 	/* the dedicated workstation for compression */
 	struct radix_tree_root workstn_tree;
+	spinlock_t workstn_lock;
 
 	/* strategy of sync decompression (false - auto, true - force on) */
 	bool readahead_sync_decompress;

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mymake() {
-	make CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- LD=ld.lld ${1}
+	make LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- LD=ld.lld ${1}
 }
 
 setenv () {

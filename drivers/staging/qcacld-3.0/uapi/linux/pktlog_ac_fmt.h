@@ -293,6 +293,8 @@ struct ath_pktlog_buf {
 				sizeof(struct ath_pktlog_hdr)) ? _rd_offset : 0; \
 	} while (0)
 
+#endif /* REMOVE_PKT_LOG */
+
 /**
  * enum tx_pkt_fate - tx packet fate
  * @TX_PKT_FATE_ACKED: Sent over air and ACKed
@@ -369,8 +371,6 @@ enum rx_pkt_fate {
 	RX_PKT_FATE_DRV_DROP_NOBUFS,
 	RX_PKT_FATE_DRV_DROP_OTHER,
 };
-
-#endif /* REMOVE_PKT_LOG */
 
 /**
  * enum pkt_type - packet type

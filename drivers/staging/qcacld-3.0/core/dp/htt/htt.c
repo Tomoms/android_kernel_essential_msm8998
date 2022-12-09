@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2011, 2014-2018 The Linux Foundation. All rights reserved.
  *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /**
@@ -113,28 +122,32 @@ void htt_htc_pkt_pool_free(struct htt_pdev_t *pdev)
 
 #ifdef ATH_11AC_TXCOMPACT
 
-void htt_htc_misc_pkt_list_trim(struct htt_pdev_t *pdev)
+void
+htt_htc_misc_pkt_list_trim(struct htt_pdev_t *pdev, int level)
 {
-	struct htt_htc_pkt_union *pkt, *next;
+	struct htt_htc_pkt_union *pkt, *next, *prev = NULL;
+	int i = 0;
 	qdf_nbuf_t netbuf;
 
-	// skip if first come
-	if(!pdev->last_misc_pkt->u.next)
-		goto out;
-
-	pkt = pdev->last_misc_pkt->u.next;
-	pdev->last_misc_pkt->u.next = NULL;
+	HTT_TX_MUTEX_ACQUIRE(&pdev->htt_tx_mutex);
+	pkt = pdev->htt_htc_pkt_misclist;
 	while (pkt) {
 		next = pkt->u.next;
-		netbuf = (qdf_nbuf_t) (pkt->u.pkt.htc_pkt.pNetBufContext);
-		qdf_nbuf_unmap(pdev->osdev, netbuf, QDF_DMA_TO_DEVICE);
-		qdf_nbuf_free(netbuf);
-		qdf_mem_free(pkt);
+		/* trim the out grown list*/
+		if (++i > level) {
+			netbuf =
+				(qdf_nbuf_t)(pkt->u.pkt.htc_pkt.pNetBufContext);
+			qdf_nbuf_unmap(pdev->osdev, netbuf, QDF_DMA_TO_DEVICE);
+			qdf_nbuf_free(netbuf);
+			qdf_mem_free(pkt);
+			pkt = NULL;
+			if (prev)
+				prev->u.next = NULL;
+		}
+		prev = pkt;
 		pkt = next;
 	}
-out:
-	pdev->last_misc_pkt = pdev->htt_htc_pkt_misclist;
-	pdev->last_misc_num = 1;
+	HTT_TX_MUTEX_RELEASE(&pdev->htt_tx_mutex);
 }
 
 void htt_htc_misc_pkt_list_add(struct htt_pdev_t *pdev, struct htt_htc_pkt *pkt)
@@ -148,16 +161,15 @@ void htt_htc_misc_pkt_list_add(struct htt_pdev_t *pdev, struct htt_htc_pkt *pkt)
 	if (pdev->htt_htc_pkt_misclist) {
 		u_pkt->u.next = pdev->htt_htc_pkt_misclist;
 		pdev->htt_htc_pkt_misclist = u_pkt;
-		pdev->last_misc_num++;
 	} else {
 		pdev->htt_htc_pkt_misclist = u_pkt;
-		pdev->last_misc_pkt = u_pkt;
-		pdev->last_misc_num = 1;
 	}
-
-	if (pdev->last_misc_num > misclist_trim_level)
-		htt_htc_misc_pkt_list_trim(pdev);
 	HTT_TX_MUTEX_RELEASE(&pdev->htt_tx_mutex);
+
+	/* only ce pipe size + tx_queue_depth could possibly be in use
+	 * free older packets in the msiclist
+	 */
+	htt_htc_misc_pkt_list_trim(pdev, misclist_trim_level);
 }
 
 void htt_htc_misc_pkt_pool_free(struct htt_pdev_t *pdev)

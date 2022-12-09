@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -329,12 +332,4 @@ unsigned char *g_cfg_param_name[] = {
 	(unsigned char *)"SAP_MAX_MCS_DATA",
 	(unsigned char *)"RATE_FOR_TX_MGMT_2G",
 	(unsigned char *)"RATE_FOR_TX_MGMT_5G",
-	(unsigned char *)"EDCA_ETSI_ACBK_LOCAL",
-	(unsigned char *)"EDCA_ETSI_ACBE_LOCAL",
-	(unsigned char *)"EDCA_ETSI_ACVI_LOCAL",
-	(unsigned char *)"EDCA_ETSI_ACVO_LOCAL",
-	(unsigned char *)"EDCA_ETSI_ACBK",
-	(unsigned char *)"EDCA_ETSI_ACBE",
-	(unsigned char *)"EDCA_ETSI_ACVI",
-	(unsigned char *)"EDCA_ETSI_ACVO",
 };

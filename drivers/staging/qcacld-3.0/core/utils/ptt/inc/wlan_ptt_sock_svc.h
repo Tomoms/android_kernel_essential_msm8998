@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /******************************************************************************
@@ -88,34 +97,12 @@
  * Payload     : LEN_PAYLOAD bytes
  */
 #ifdef PTT_SOCK_SVC_ENABLE
-
-/**
- * ptt_sock_activate_svc() - API to register PTT/PUMAC command handlers
- *
- * API to register the handler for PTT/PUMAC NL messages.
- *
- * Return: None
- */
-void ptt_sock_activate_svc(void);
-
-/**
- * ptt_sock_deactivate_svc() - API to deregister PTT/PUMAC command handlers
- *
- * API to deregister the handler for PTT/PUMAC NL messages.
- *
- * Return: None
- */
+int ptt_sock_activate_svc(void);
 void ptt_sock_deactivate_svc(void);
 int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid);
 #else
-static inline void ptt_sock_activate_svc(void)
-{
-}
-
-static inline void ptt_sock_deactivate_svc(void)
-{
-}
-
+static inline int ptt_sock_activate_svc(void) { return 0; }
+static inline void ptt_sock_deactivate_svc(void) { return; }
 static inline int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio,
 					   int src_mod, int pid)
 {

@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2016-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -381,11 +383,11 @@ ABORT_PREAUTH:
 		if (csr_roam_is_roam_offload_scan_enabled(mac_ctx)) {
 			if (neighbor_roam_info->uOsRequestedHandoff) {
 				neighbor_roam_info->uOsRequestedHandoff = 0;
-				csr_roam_offload_scan(mac_ctx, session_id,
+				csr_roam_offload_scan(mac_ctx, 0,
 					ROAM_SCAN_OFFLOAD_START,
 					REASON_PREAUTH_FAILED_FOR_ALL);
 			} else {
-				csr_roam_offload_scan(mac_ctx, session_id,
+				csr_roam_offload_scan(mac_ctx, 0,
 					ROAM_SCAN_OFFLOAD_RESTART,
 					REASON_PREAUTH_FAILED_FOR_ALL);
 			}
@@ -575,7 +577,6 @@ QDF_STATUS csr_roam_issue_ft_preauth_req(tHalHandle hal, uint32_t session_id,
 				+ bss_desc->length);
 	if (NULL == preauth_req->pbssDescription) {
 		sme_err("Memory allocation for FT Preauth request failed");
-		qdf_mem_free(preauth_req);
 		return QDF_STATUS_E_NOMEM;
 	}
 

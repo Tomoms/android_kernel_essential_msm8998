@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -16,6 +19,12 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
+ */
+
 /**
  * DOC: wlan_hdd_debugfs.c
  *
@@ -26,15 +35,11 @@
  */
 
 #ifdef WLAN_OPEN_SOURCE
-#if defined(CONFIG_ANDROID) && !defined(CONFIG_DEBUG_FS)
-#define CONFIG_DEBUG_FS
-#endif
 #include <wlan_hdd_includes.h>
 #include <wlan_hdd_debugfs.h>
 #include <wlan_hdd_wowl.h>
 #include <cds_sched.h>
 #include <wlan_hdd_debugfs_llstat.h>
-#include <wlan_hdd_request_manager.h>
 
 #define MAX_USER_COMMAND_SIZE_WOWL_ENABLE 8
 #define MAX_USER_COMMAND_SIZE_WOWL_PATTERN 512
@@ -43,52 +48,6 @@
 #ifdef WLAN_POWER_DEBUGFS
 #define POWER_DEBUGFS_BUFFER_MAX_LEN 4096
 #endif
-
-#define MAX_DEBUGFS_WAIT_ITERATIONS 20
-#define DEBUGFS_WAIT_SLEEP_TIME 100
-
-static qdf_atomic_t debugfs_thread_count;
-
-void hdd_debugfs_thread_increment(void)
-{
-	qdf_atomic_inc(&debugfs_thread_count);
-}
-
-void hdd_debugfs_thread_decrement(void)
-{
-	qdf_atomic_dec(&debugfs_thread_count);
-}
-
-int hdd_return_debugfs_threads_count(void)
-{
-	return qdf_atomic_read(&debugfs_thread_count);
-}
-
-bool hdd_wait_for_debugfs_threads_completion(void)
-{
-	int count = MAX_DEBUGFS_WAIT_ITERATIONS;
-	int r;
-
-	while (count) {
-
-		r = hdd_return_debugfs_threads_count();
-		if (!r)
-			break;
-
-		if (--count) {
-			hdd_debug("Waiting for %d debugfs threads to exit", r);
-			msleep(DEBUGFS_WAIT_SLEEP_TIME);
-		}
-	}
-
-	/* at least one debugfs thread is executing */
-	if (!count) {
-		hdd_err("Timed-out waiting for debugfs threads");
-		return false;
-	}
-
-	return true;
-}
 
 /**
  * __wcnss_wowenable_write() - wow_enable debugfs handler
@@ -549,65 +508,72 @@ static ssize_t wcnss_patterngen_write(struct file *file,
 }
 
 #ifdef WLAN_POWER_DEBUGFS
-struct power_stats_priv {
-	struct power_stats_response power_stats;
-};
-
-static void hdd_power_debugstats_dealloc(void *priv)
-{
-	struct power_stats_priv *stats = priv;
-
-	if (stats->power_stats.debug_registers) {
-		qdf_mem_free(stats->power_stats.debug_registers);
-		stats->power_stats.debug_registers = NULL;
-	}
-}
-
 /**
  * hdd_power_debugstats_cb() - callback routine for Power stats debugs
  * @response: Pointer to Power stats response
- * @context: Callback context
+ * @context: Pointer to statsContext
  *
  * Return: None
  */
 static void hdd_power_debugstats_cb(struct power_stats_response *response,
-				    void *context)
+							void *context)
 {
-	struct hdd_request *request;
-	struct power_stats_priv *priv;
-	uint32_t *debug_registers;
-	uint32_t debug_registers_len;
+	struct statsContext *stats_context;
+	struct power_stats_response *power_stats;
+	hdd_adapter_t *adapter;
+	uint32_t power_stats_len;
+	uint32_t stats_registers_len;
 
 	ENTER();
-
-	request = hdd_request_get(context);
-	if (!request) {
-		hdd_err("Obsolete request");
+	if (!context) {
+		hdd_err("context is NULL");
 		return;
 	}
 
-	priv = hdd_request_priv(request);
+	stats_context = (struct statsContext *)context;
 
-	/* copy fixed-sized data */
-	priv->power_stats = *response;
-
-	/* copy variable-size data */
-	if (response->num_debug_register) {
-		debug_registers_len = (sizeof(response->debug_registers[0]) *
-				       response->num_debug_register);
-		debug_registers = qdf_mem_malloc(debug_registers_len);
-		priv->power_stats.debug_registers = debug_registers;
-		if (debug_registers) {
-			qdf_mem_copy(debug_registers,
-				     response->debug_registers,
-				     debug_registers_len);
-		} else {
-			hdd_err("Power stats memory alloc fails!");
-			priv->power_stats.num_debug_register = 0;
-		}
+	spin_lock(&hdd_context_lock);
+	adapter = stats_context->pAdapter;
+	if ((POWER_STATS_MAGIC != stats_context->magic) ||
+		(!adapter) || (WLAN_HDD_ADAPTER_MAGIC != adapter->magic)) {
+		spin_unlock(&hdd_context_lock);
+		hdd_err("Invalid context, adapter [%pK] magic [%08x]",
+				adapter, stats_context->magic);
+		return;
 	}
-	hdd_request_complete(request);
-	hdd_request_put(request);
+
+	stats_context->magic = 0;
+	stats_registers_len = (sizeof(response->debug_registers[0]) *
+					response->num_debug_register);
+	power_stats_len = stats_registers_len + sizeof(*power_stats);
+	adapter->chip_power_stats = qdf_mem_malloc(power_stats_len);
+	if (!adapter->chip_power_stats) {
+		hdd_err("Power stats memory alloc fails!");
+		goto exit_stats_cb;
+	}
+
+	power_stats = adapter->chip_power_stats;
+	power_stats->cumulative_sleep_time_ms
+		= response->cumulative_sleep_time_ms;
+	power_stats->cumulative_total_on_time_ms
+		= response->cumulative_total_on_time_ms;
+	power_stats->deep_sleep_enter_counter
+		= response->deep_sleep_enter_counter;
+	power_stats->last_deep_sleep_enter_tstamp_ms
+		= response->last_deep_sleep_enter_tstamp_ms;
+	power_stats->debug_register_fmt
+		= response->debug_register_fmt;
+	power_stats->num_debug_register
+		= response->num_debug_register;
+
+	power_stats->debug_registers = (uint32_t *)(power_stats + 1);
+
+	qdf_mem_copy(power_stats->debug_registers,
+		response->debug_registers, stats_registers_len);
+
+exit_stats_cb:
+	complete(&stats_context->completion);
+	spin_unlock(&hdd_context_lock);
 	EXIT();
 }
 
@@ -626,20 +592,12 @@ static ssize_t __wlan_hdd_read_power_debugfs(struct file *file,
 {
 	hdd_adapter_t *adapter;
 	hdd_context_t *hdd_ctx;
-	QDF_STATUS status;
+	static struct statsContext context;
 	struct power_stats_response *chip_power_stats;
 	ssize_t ret_cnt = 0;
-	int j;
+	int rc = 0, j;
 	unsigned int len = 0;
-	char *power_debugfs_buf = NULL;
-	void *cookie;
-	struct hdd_request *request;
-	struct power_stats_priv *priv;
-	static const struct hdd_request_params params = {
-		.priv_size = sizeof(*priv),
-		.timeout_ms = WLAN_WAIT_TIME_POWER_STATS,
-		.dealloc = hdd_power_debugstats_dealloc,
-	};
+	char *power_debugfs_buf;
 
 	ENTER();
 	adapter = (hdd_adapter_t *)file->private_data;
@@ -656,39 +614,52 @@ static ssize_t __wlan_hdd_read_power_debugfs(struct file *file,
 	if (!wlan_hdd_modules_are_enabled(hdd_ctx))
 		return -EINVAL;
 
+	mutex_lock(&hdd_ctx->power_stats_lock);
 
-	request = hdd_request_alloc(&params);
-	if (!request) {
-		hdd_err("Request allocation failure");
-		return -ENOMEM;
-	}
-	cookie = hdd_request_cookie(request);
+	if (adapter->chip_power_stats)
+		qdf_mem_free(adapter->chip_power_stats);
 
-	status = sme_power_debug_stats_req(hdd_ctx->hHal,
-					   hdd_power_debugstats_cb,
-					   cookie);
-	if (!QDF_IS_STATUS_SUCCESS(status)) {
+	adapter->chip_power_stats = NULL;
+	context.pAdapter = adapter;
+	context.magic = POWER_STATS_MAGIC;
+
+	init_completion(&context.completion);
+
+	if (QDF_STATUS_SUCCESS !=
+			sme_power_debug_stats_req(hdd_ctx->hHal,
+				hdd_power_debugstats_cb,
+				&context)) {
+		mutex_unlock(&hdd_ctx->power_stats_lock);
 		hdd_err("chip power stats request failed");
-		ret_cnt = -EINVAL;
-		goto cleanup;
+		return -EINVAL;
 	}
 
-	ret_cnt = hdd_request_wait_for_response(request);
-	if (ret_cnt) {
+	rc = wait_for_completion_timeout(&context.completion,
+			msecs_to_jiffies(WLAN_WAIT_TIME_POWER_STATS));
+	if (!rc) {
+		mutex_unlock(&hdd_ctx->power_stats_lock);
 		hdd_err("Target response timed out Power stats");
-		ret_cnt = -ETIMEDOUT;
-		goto cleanup;
+		/* Invalidate the Stats context magic */
+		spin_lock(&hdd_context_lock);
+		context.magic = 0;
+		spin_unlock(&hdd_context_lock);
+		return -ETIMEDOUT;
 	}
 
-	priv = hdd_request_priv(request);
-	chip_power_stats = &priv->power_stats;
-
+	chip_power_stats = adapter->chip_power_stats;
+	if (!chip_power_stats) {
+		mutex_unlock(&hdd_ctx->power_stats_lock);
+		hdd_err("Power stats retrieval fails!");
+		return -EINVAL;
+	}
 
 	power_debugfs_buf = qdf_mem_malloc(POWER_DEBUGFS_BUFFER_MAX_LEN);
 	if (!power_debugfs_buf) {
+		qdf_mem_free(chip_power_stats);
+		adapter->chip_power_stats = NULL;
+		mutex_unlock(&hdd_ctx->power_stats_lock);
 		hdd_err("Power stats buffer alloc fails!");
-		ret_cnt = -EINVAL;
-		goto cleanup;
+		return -EINVAL;
 	}
 
 	len += scnprintf(power_debugfs_buf, POWER_DEBUGFS_BUFFER_MAX_LEN,
@@ -716,15 +687,13 @@ static ssize_t __wlan_hdd_read_power_debugfs(struct file *file,
 			j = chip_power_stats->num_debug_register;
 	}
 
+	qdf_mem_free(chip_power_stats);
+	adapter->chip_power_stats = NULL;
+	mutex_unlock(&hdd_ctx->power_stats_lock);
+
 	ret_cnt = simple_read_from_buffer(buf, count, pos,
 			power_debugfs_buf, len);
-
-cleanup:
-	if (power_debugfs_buf)
-		qdf_mem_free(power_debugfs_buf);
-
-	hdd_request_put(request);
-
+	qdf_mem_free(power_debugfs_buf);
 	return ret_cnt;
 }
 
@@ -870,17 +839,42 @@ static const struct file_operations fops_powerdebugs = {
  */
 static QDF_STATUS wlan_hdd_init_power_stats_debugfs(hdd_adapter_t *adapter)
 {
+	hdd_context_t *hdd_ctx;
+
 	if (!debugfs_create_file("power_stats", 00400 | 00040 | 00004,
 				adapter->debugfs_phy, adapter,
 				&fops_powerdebugs))
 		return QDF_STATUS_E_FAILURE;
 
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	if (hdd_ctx)
+		mutex_init(&hdd_ctx->power_stats_lock);
+
 	return QDF_STATUS_SUCCESS;
+}
+
+/**
+ * wlan_hdd_deinit_power_stats_debugfs() - API to deinit power stats debugfs
+ * @hdd_ctx: hdd context pointer
+ *
+ * Return: None
+ */
+static void wlan_hdd_deinit_power_stats_debugfs(hdd_adapter_t *adapter)
+{
+	hdd_context_t *hdd_ctx;
+
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	if (hdd_ctx)
+		mutex_destroy(&hdd_ctx->power_stats_lock);
 }
 #else
 static QDF_STATUS wlan_hdd_init_power_stats_debugfs(hdd_adapter_t *adapter)
 {
 	return QDF_STATUS_SUCCESS;
+}
+
+static void wlan_hdd_deinit_power_stats_debugfs(hdd_adapter_t *adapter)
+{
 }
 #endif
 
@@ -939,6 +933,7 @@ QDF_STATUS hdd_debugfs_init(hdd_adapter_t *adapter)
  */
 void hdd_debugfs_exit(hdd_adapter_t *adapter)
 {
+	wlan_hdd_deinit_power_stats_debugfs(adapter);
 	debugfs_remove_recursive(adapter->debugfs_phy);
 }
 #endif /* #ifdef WLAN_OPEN_SOURCE */

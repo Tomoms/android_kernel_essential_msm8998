@@ -25,47 +25,46 @@
 
 #include "wlan_hdd_disa.h"
 #include "sme_api.h"
-#include "wlan_hdd_request_manager.h"
 
+#define ENCRYPT_DECRYPT_CONTEXT_MAGIC 0x4475354
 #define WLAN_WAIT_TIME_ENCRYPT_DECRYPT 1000
+
 
 /**
  * hdd_encrypt_decrypt_msg_context - hdd encrypt/decrypt message context
- * @status: status of response. 0: no error, -ENOMEM: unable to allocate
- *   memory for the response payload
- * @request: encrypt/decrypt request
- * @response: encrypt/decrypt response
+ *
+ * @magic: magic number
+ * @completion: Completion variable for encrypt/decrypt message
+ * @response_event: encrypt/decrypt message request wait event
  */
 struct hdd_encrypt_decrypt_msg_context {
-	int status;
-	struct encrypt_decrypt_req_params request;
+	unsigned int magic;
+	struct completion completion;
 	struct sir_encrypt_decrypt_rsp_params response;
 };
+static struct hdd_encrypt_decrypt_msg_context encrypt_decrypt_msg_context;
 
 /**
- * hdd_encrypt_decrypt_msg_cb () - encrypt/decrypt response message handler
- * @cookie: hdd request cookie
+ * hdd_encrypt_decrypt_msg_cb () - sends encrypt/decrypt data to user space
  * @encrypt_decrypt_rsp_params: encrypt/decrypt response parameters
  *
  * Return: none
  */
-static void hdd_encrypt_decrypt_msg_cb(void *cookie,
-				       struct sir_encrypt_decrypt_rsp_params
-						*encrypt_decrypt_rsp_params)
+static void hdd_encrypt_decrypt_msg_cb(void *hdd_context,
+	struct sir_encrypt_decrypt_rsp_params *encrypt_decrypt_rsp_params)
 {
-	struct hdd_request *request;
+	hdd_context_t *hdd_ctx = hdd_context;
+	int ret;
 	struct hdd_encrypt_decrypt_msg_context *context;
 
 	ENTER();
 
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (ret)
+		return;
+
 	if (!encrypt_decrypt_rsp_params) {
 		hdd_err("rsp params is NULL");
-		return;
-	}
-
-	request = hdd_request_get(cookie);
-	if (!request) {
-		hdd_err("obsolete request");
 		return;
 	}
 
@@ -79,42 +78,52 @@ static void hdd_encrypt_decrypt_msg_cb(void *cookie,
 		encrypt_decrypt_rsp_params->status,
 		encrypt_decrypt_rsp_params->data_length);
 
-	context = hdd_request_priv(request);
+	spin_lock(&hdd_context_lock);
 
+	context = &encrypt_decrypt_msg_context;
+	/* The caller presumably timed out so there is nothing we can do */
+	if (context->magic != ENCRYPT_DECRYPT_CONTEXT_MAGIC) {
+		spin_unlock(&hdd_context_lock);
+		return;
+	}
+
+	/* context is valid so caller is still waiting */
 	context->response = *encrypt_decrypt_rsp_params;
 
 	if (encrypt_decrypt_rsp_params->data_length) {
 		context->response.data =
 			qdf_mem_malloc(sizeof(uint8_t) *
 				encrypt_decrypt_rsp_params->data_length);
-		if (!context->response.data) {
-			hdd_err("memory allocation failed");
-			context->status = -ENOMEM;
-			hdd_request_complete(request);
-			hdd_request_put(request);
+		if (context->response.data == NULL) {
+			hdd_err("cdf_mem_alloc failed for data");
+			spin_unlock(&hdd_context_lock);
 			return;
-		} else {
-			qdf_mem_copy(context->response.data,
-				     encrypt_decrypt_rsp_params->data,
-				     encrypt_decrypt_rsp_params->data_length);
 		}
-	} else {
-		/* make sure we don't have a rogue pointer */
-		context->response.data = NULL;
+		qdf_mem_copy(context->response.data,
+			encrypt_decrypt_rsp_params->data,
+			encrypt_decrypt_rsp_params->data_length);
 	}
 
-	hdd_request_complete(request);
-	hdd_request_put(request);
+	/*
+	 * Indicate to calling thread that
+	 * response data is available
+	 */
+	context->magic = 0;
+
+	complete(&context->completion);
+
+	spin_unlock(&hdd_context_lock);
+
 
 	EXIT();
 }
 
+
 /**
- * hdd_post_encrypt_decrypt_msg_rsp () - sends encrypt/decrypt msg to user space
- * @hdd_ctx: pointer to hdd context
+ * hdd_encrypt_decrypt_msg_cb () - sends encrypt/decrypt data to user space
  * @encrypt_decrypt_rsp_params: encrypt/decrypt response parameters
  *
- * Return: 0 on success, negative errno on failure
+ * Return: none
  */
 static int hdd_post_encrypt_decrypt_msg_rsp(hdd_context_t *hdd_ctx,
 	struct sir_encrypt_decrypt_rsp_params *encrypt_decrypt_rsp_params)
@@ -322,7 +331,7 @@ static int hdd_fill_encrypt_decrypt_params(struct encrypt_decrypt_req_params
 				encrypt_decrypt_params->data_len);
 
 		if (encrypt_decrypt_params->data == NULL) {
-			hdd_err("memory allocation failed");
+			hdd_err("cdf_mem_alloc failed for data");
 			return -ENOMEM;
 		}
 
@@ -340,116 +349,108 @@ static int hdd_fill_encrypt_decrypt_params(struct encrypt_decrypt_req_params
 }
 
 /**
- * hdd_encrypt_decrypt_context_dealloc() - deallocate memory allocated for data
- * @priv: Pointer to private data
- *
- * Return: None
- */
-static void hdd_encrypt_decrypt_context_dealloc(void *priv)
-{
-	struct hdd_encrypt_decrypt_msg_context *context = priv;
-
-	if (context->request.data) {
-		qdf_mem_free(context->request.data);
-		context->request.data = NULL;
-	}
-
-	if (context->response.data) {
-		qdf_mem_free(context->response.data);
-		context->response.data = NULL;
-	}
-}
-
-/**
  * hdd_encrypt_decrypt_msg () - process encrypt/decrypt message
  * @adapter : adapter context
  * @hdd_ctx: hdd context
  * @data: Pointer to data
  * @data_len: Data length
  *
- * Return: 0 on success, negative errno on failure
+ Return: 0 on success, negative errno on failure
  */
 static int hdd_encrypt_decrypt_msg(hdd_adapter_t *adapter,
-				   hdd_context_t *hdd_ctx,
-				   const void *data,
-				   int data_len)
+						hdd_context_t *hdd_ctx,
+						const void *data,
+						int data_len)
 {
+	struct encrypt_decrypt_req_params encrypt_decrypt_params = {0};
 	QDF_STATUS qdf_status;
 	int ret;
-	void *cookie;
-	struct hdd_request *request;
 	struct hdd_encrypt_decrypt_msg_context *context;
-	static const struct hdd_request_params params = {
-		.priv_size = sizeof(*context),
-		.timeout_ms = WLAN_WAIT_TIME_ENCRYPT_DECRYPT,
-		.dealloc = hdd_encrypt_decrypt_context_dealloc,
-	};
+	unsigned long rc;
 
-	request = hdd_request_alloc(&params);
-	if (!request) {
-		hdd_err("Request Allocation Failure");
-		return -ENOMEM;
-	}
-	context = hdd_request_priv(request);
-
-	ret = hdd_fill_encrypt_decrypt_params(&context->request,
-					      adapter, data, data_len);
+	ret = hdd_fill_encrypt_decrypt_params(&encrypt_decrypt_params,
+				adapter, data, data_len);
 	if (ret)
-		goto clean_up;
+		return ret;
 
-	cookie = hdd_request_cookie(request);
-
-	qdf_status = sme_encrypt_decrypt_msg_register_callback(hdd_ctx->hHal,
-					hdd_encrypt_decrypt_msg_cb);
-	if (!QDF_IS_STATUS_SUCCESS(qdf_status)) {
-		hdd_err("Encrypt/Decrypt callback failed %d", qdf_status);
-		ret = -EINVAL;
-		goto clean_up;
-	}
+	spin_lock(&hdd_context_lock);
+	context = &encrypt_decrypt_msg_context;
+	context->magic = ENCRYPT_DECRYPT_CONTEXT_MAGIC;
+	INIT_COMPLETION(context->completion);
+	spin_unlock(&hdd_context_lock);
 
 	qdf_status = sme_encrypt_decrypt_msg(hdd_ctx->hHal,
-					     &context->request,
-					     cookie);
+					&encrypt_decrypt_params);
+
+	qdf_mem_free(encrypt_decrypt_params.data);
 
 	if (!QDF_IS_STATUS_SUCCESS(qdf_status)) {
 		hdd_err("Unable to post encrypt/decrypt message");
-		ret = -EINVAL;
-		goto deregister_cb;
+		return -EINVAL;
 	}
 
-	ret = hdd_request_wait_for_response(request);
-	if (ret) {
+	rc = wait_for_completion_timeout(&context->completion,
+			msecs_to_jiffies(WLAN_WAIT_TIME_ENCRYPT_DECRYPT));
+
+	spin_lock(&hdd_context_lock);
+	if (!rc && (context->magic ==
+			ENCRYPT_DECRYPT_CONTEXT_MAGIC)) {
 		hdd_err("Target response timed out");
-		goto deregister_cb;
+		context->magic = 0;
+		spin_unlock(&hdd_context_lock);
+		return -ETIMEDOUT;
 	}
 
-	ret = context->status;
-	if (ret) {
-		hdd_err("Target response processing failed");
-		goto deregister_cb;
-	}
-
-	ret = hdd_post_encrypt_decrypt_msg_rsp(hdd_ctx, &context->response);
+	spin_unlock(&hdd_context_lock);
+	ret = hdd_post_encrypt_decrypt_msg_rsp(hdd_ctx,
+				&encrypt_decrypt_msg_context.response);
 	if (ret)
 		hdd_err("Failed to post encrypt/decrypt message response");
 
-deregister_cb:
-	qdf_status = sme_encrypt_decrypt_msg_deregister_callback(hdd_ctx->hHal);
-	if (!QDF_IS_STATUS_SUCCESS(qdf_status)) {
-		hdd_err("De-register encrypt/decrypt callback failed: %d",
-			qdf_status);
-		ret = -EINVAL;
-	}
-clean_up:
-	/*
-	 * either we never sent a request, we sent a request and
-	 * received a response or we sent a request and timed out.
-	 * regardless we are done with the request.
-	 */
-	hdd_request_put(request);
+	qdf_mem_free(encrypt_decrypt_msg_context.response.data);
 
 	EXIT();
 	return ret;
+}
+
+/**
+ * hdd_encrypt_decrypt_init () - exposes encrypt/decrypt initialization
+ * functionality
+ * @hdd_ctx: hdd context
+ *
+ Return: 0 on success, negative errno on failure
+ */
+int hdd_encrypt_decrypt_init(hdd_context_t *hdd_ctx)
+{
+	QDF_STATUS status;
+
+	init_completion(&encrypt_decrypt_msg_context.completion);
+
+	status = sme_encrypt_decrypt_msg_register_callback(hdd_ctx->hHal,
+					hdd_encrypt_decrypt_msg_cb);
+	if (!QDF_IS_STATUS_SUCCESS(status)) {
+		hdd_err("encrypt/decrypt callback failed %d", status);
+		return -EINVAL;
+	}
+	return 0;
+}
+
+/**
+ * hdd_encrypt_decrypt_deinit () - exposes encrypt/decrypt deinitialization
+ * functionality
+ * @hdd_ctx: hdd context
+ *
+ Return: 0 on success, negative errno on failure
+ */
+int hdd_encrypt_decrypt_deinit(hdd_context_t *hdd_ctx)
+{
+	QDF_STATUS status;
+
+	status = sme_encrypt_decrypt_msg_deregister_callback(hdd_ctx->hHal);
+	if (!QDF_IS_STATUS_SUCCESS(status))
+		hdd_err("De-register encrypt/decrypt callback failed: %d",
+			status);
+	return 0;
 }
 
 /**

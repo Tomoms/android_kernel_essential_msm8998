@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -16,6 +19,12 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
+ */
+
 /**
  * @file ol_tx.h
  * @brief Internal definitions for the high-level tx module.
@@ -30,17 +39,13 @@
 
 #include <ol_txrx_types.h>      /* ol_tx_desc_t, ol_txrx_msdu_info_t */
 
-qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-		    bool notify_tx_comp);
-qdf_nbuf_t ol_tx_ll_wrapper(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-			    bool notify_tx_comp);
+qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list);
+qdf_nbuf_t ol_tx_ll_wrapper(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list);
 #ifdef WLAN_FEATURE_FASTPATH
-qdf_nbuf_t ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-			 bool notify_tx_comp);
+qdf_nbuf_t ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list);
 #endif
 
-qdf_nbuf_t ol_tx_ll_queue(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-			  bool notify_tx_comp);
+qdf_nbuf_t ol_tx_ll_queue(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list);
 
 #ifdef CONFIG_HL_SUPPORT
 #define OL_TX_SEND ol_tx_hl
@@ -55,10 +60,10 @@ qdf_nbuf_t ol_tx_ll_queue(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 #endif
 
 #ifdef QCA_LL_LEGACY_TX_FLOW_CONTROL
-void ol_tx_vdev_ll_pause_queue_send(unsigned long context);
+void ol_tx_vdev_ll_pause_queue_send(void *context);
 void ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev);
 #else
-static inline void ol_tx_vdev_ll_pause_queue_send(unsigned long context)
+static inline void ol_tx_vdev_ll_pause_queue_send(void *context)
 {
 }
 static inline
@@ -83,12 +88,11 @@ ol_tx_non_std_hl(ol_txrx_vdev_handle data_vdev,
  * ol_tx_hl() - transmit tx frames for a HL system.
  * @vdev: the virtual device transmit the data
  * @msdu_list: the tx frames to send
- * @notify_tx_comp: is OTA to be notified
  *
  * Return: NULL if all MSDUs are accepted
  */
 qdf_nbuf_t
-ol_tx_hl(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list, bool notify_tx_comp);
+ol_tx_hl(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list);
 
 qdf_nbuf_t
 ol_tx_non_std_ll(ol_txrx_vdev_handle data_vdev,

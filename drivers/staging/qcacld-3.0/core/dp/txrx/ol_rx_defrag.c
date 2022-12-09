@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2011-2019, 2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /*-
@@ -59,8 +68,6 @@
 #include <ol_rx_defrag.h>
 #include <enet.h>
 #include <qdf_time.h>           /* qdf_system_time */
-#include <htt_internal.h>
-
 
 #define DEFRAG_IEEE80211_ADDR_EQ(a1, a2) \
 	(!qdf_mem_cmp(a1, a2, IEEE80211_ADDR_LEN))
@@ -373,7 +380,7 @@ ol_rx_frag_indication_handler(ol_txrx_pdev_handle pdev,
 	pktlog_bit =
 		(htt_rx_amsdu_rx_in_order_get_pktlog(rx_frag_ind_msg) == 0x01);
 	ret = htt_rx_frag_pop(htt_pdev, rx_frag_ind_msg, &head_msdu,
-			      &tail_msdu, NULL, &msdu_count);
+			      &tail_msdu, &msdu_count);
 	/* Return if msdu pop fails from rx hash table, as recovery
 	 * is triggered and we exit gracefully.
 	 */
@@ -445,8 +452,6 @@ ol_rx_reorder_store_frag(ol_txrx_pdev_handle pdev,
 	struct ol_rx_reorder_array_elem_t *rx_reorder_array_elem;
 	uint16_t frxseq, rxseq, seq;
 	htt_pdev_handle htt_pdev = pdev->htt_pdev;
-	void *rx_desc;
-	uint8_t index;
 
 	seq = seq_num & peer->tids_rx_reorder[tid].win_sz_mask;
 	qdf_assert(seq == 0);
@@ -459,28 +464,6 @@ ol_rx_reorder_store_frag(ol_txrx_pdev_handle pdev,
 	fragno = qdf_le16_to_cpu(*(uint16_t *) mac_hdr->i_seq) &
 		IEEE80211_SEQ_FRAG_MASK;
 	more_frag = mac_hdr->i_fc[1] & IEEE80211_FC1_MORE_FRAG;
-
-	rx_desc = htt_rx_msdu_desc_retrieve(htt_pdev, frag);
-	qdf_assert(htt_rx_msdu_has_wlan_mcast_flag(htt_pdev, rx_desc));
-	index = htt_rx_msdu_is_wlan_mcast(htt_pdev, rx_desc) ?
-		txrx_sec_mcast : txrx_sec_ucast;
-
-	/*
-	 * Multicast/Broadcast frames should not be fragmented so drop
-	 * such frames.
-	 */
-	if (index != txrx_sec_ucast) {
-		ol_rx_frames_free(htt_pdev, frag);
-		return;
-	}
-
-	if (peer->security[index].sec_type != htt_sec_type_none &&
-	    !htt_rx_mpdu_is_encrypted(htt_pdev, rx_desc)) {
-		ol_txrx_err("Unencrypted fragment received in security mode %d",
-			    peer->security[index].sec_type);
-		ol_rx_frames_free(htt_pdev, frag);
-		return;
-	}
 
 	if ((!more_frag) && (!fragno) && (!rx_reorder_array_elem->head)) {
 	ol_rx_fraglist_insert(htt_pdev, &rx_reorder_array_elem->head,
@@ -708,7 +691,6 @@ ol_rx_defrag(ol_txrx_pdev_handle pdev,
 	struct ieee80211_frame *wh;
 	uint8_t key[DEFRAG_IEEE80211_KEY_LEN];
 	htt_pdev_handle htt_pdev = pdev->htt_pdev;
-	struct ol_mon_tx_status pkt_tx_status = {0};
 
 	vdev = peer->vdev;
 
@@ -724,13 +706,7 @@ ol_rx_defrag(ol_txrx_pdev_handle pdev,
 	while (cur) {
 		tmp_next = qdf_nbuf_next(cur);
 		qdf_nbuf_set_next(cur, NULL);
-		/*
-		 * Strict PN check between the first fragment of the current
-		 * frame and the last fragment of the previous frame is not
-		 * necessary.
-		 */
-		if (!ol_rx_pn_check_base(vdev, peer, tid, cur,
-					 (cur == frag_list) ? false : true)) {
+		if (!ol_rx_pn_check_base(vdev, peer, tid, cur)) {
 			/* PN check failed,discard frags */
 			if (prev) {
 				qdf_nbuf_set_next(prev, NULL);
@@ -832,41 +808,6 @@ ol_rx_defrag(ol_txrx_pdev_handle pdev,
 	if (ol_cfg_frame_type(pdev->ctrl_pdev) == wlan_frm_fmt_802_3)
 		ol_rx_defrag_nwifi_to_8023(pdev, msdu);
 
-	if (cds_get_pktcap_mode_enable() &&
-	    (ol_cfg_pktcapture_mode(pdev->ctrl_pdev) &
-	     PKT_CAPTURE_MODE_DATA_ONLY) &&
-	    pdev->mon_cb) {
-		qdf_nbuf_t tmp_msdu, tmp_msdu_next;
-		qdf_nbuf_t mon_prev = NULL;
-		qdf_nbuf_t mon_msdu = NULL;
-		qdf_nbuf_t head_mon_msdu = NULL;
-
-		tmp_msdu = msdu;
-		while (tmp_msdu) {
-			tmp_msdu_next = qdf_nbuf_next(tmp_msdu);
-			mon_msdu = qdf_nbuf_copy(tmp_msdu);
-			if (mon_msdu) {
-				qdf_nbuf_push_head(mon_msdu,
-						   HTT_RX_STD_DESC_RESERVATION);
-				qdf_nbuf_set_next(mon_msdu, NULL);
-
-				if (!(head_mon_msdu)) {
-					head_mon_msdu = mon_msdu;
-					mon_prev = mon_msdu;
-				} else {
-					qdf_nbuf_set_next(mon_prev, mon_msdu);
-					mon_prev = mon_msdu;
-				}
-			}
-			tmp_msdu = tmp_msdu_next;
-		}
-		if (head_mon_msdu)
-			ol_txrx_mon_data_process(
-				vdev->vdev_id, head_mon_msdu,
-				PROCESS_TYPE_DATA_RX, 0, pkt_tx_status,
-				TXRX_PKT_FORMAT_8023);
-	}
-
 	ol_rx_fwd_check(vdev, peer, tid, msdu);
 }
 
@@ -965,7 +906,7 @@ ol_rx_frag_tkip_demic(ol_txrx_pdev_handle pdev, const uint8_t *key,
 
 	ol_rx_defrag_copydata(msdu, pktlen - f_tkip.ic_miclen + rx_desc_len,
 			      f_tkip.ic_miclen, (caddr_t) mic0);
-	if (qdf_mem_cmp(mic, mic0, f_tkip.ic_miclen))
+	if (!qdf_mem_cmp(mic, mic0, f_tkip.ic_miclen))
 		return OL_RX_DEFRAG_ERR;
 
 	qdf_nbuf_trim_tail(msdu, f_tkip.ic_miclen);

@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /*===========================================================================
@@ -519,9 +528,8 @@ static bool sap_chan_sel_init(tHalHandle halHandle,
 
 	/* Allocate memory for weight computation of 2.4GHz */
 	pSpectCh =
-		(tSapSpectChInfo *)qdf_mem_malloc(
-					(pSpectInfoParams->numSpectChans) *
-					sizeof(*pSpectCh));
+		(tSapSpectChInfo *) qdf_mem_malloc((pSpectInfoParams->numSpectChans)
+						   * sizeof(*pSpectCh));
 
 	if (pSpectCh == NULL) {
 		QDF_TRACE(QDF_MODULE_ID_SAP, QDF_TRACE_LEVEL_ERROR,
@@ -550,18 +558,9 @@ static bool sap_chan_sel_init(tHalHandle halHandle,
 	     channelnum++, pChans++, pSpectCh++) {
 		chSafe = true;
 
-		pSpectCh->chNum = *pChans;
-		/* Initialise for all channels */
-		pSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
-		/* Initialise 20MHz for all the Channels */
-		pSpectCh->channelWidth = SOFTAP_HT20_CHANNELWIDTH;
-		/* Initialise max ACS weight for all channels */
-		pSpectCh->weight = SAP_ACS_WEIGHT_MAX;
-
 		/* check if the channel is in NOL blacklist */
-		if (sap_dfs_is_channel_in_nol_list(
-					pSapCtx, *pChans,
-					PHY_SINGLE_CHANNEL_CENTERED)) {
+		if (sap_dfs_is_channel_in_nol_list(pSapCtx, *pChans,
+						   PHY_SINGLE_CHANNEL_CENTERED)) {
 			QDF_TRACE(QDF_MODULE_ID_SAP, QDF_TRACE_LEVEL_INFO_HIGH,
 				  "In %s, Ch %d is in NOL list", __func__,
 				  *pChans);
@@ -600,7 +599,12 @@ static bool sap_chan_sel_init(tHalHandle halHandle,
 			continue;
 
 		if (true == chSafe) {
+			pSpectCh->chNum = *pChans;
 			pSpectCh->valid = true;
+			pSpectCh->rssiAgr = SOFTAP_MIN_RSSI;    /* Initialise for all channels */
+			pSpectCh->channelWidth = SOFTAP_HT20_CHANNELWIDTH;      /* Initialise 20MHz for all the Channels */
+			/* Initialise max ACS weight for all channels */
+			pSpectCh->weight = SAP_ACS_WEIGHT_MAX;
 			for (chan_num = 0; chan_num < pSapCtx->num_of_channel;
 			     chan_num++) {
 				if (pSpectCh->chNum !=
@@ -1437,8 +1441,6 @@ static void sap_compute_spect_weight(tSapChSelSpectInfo *pSpectInfoParams,
 	int8_t rssi = 0;
 	uint8_t chn_num = 0;
 	uint8_t channel_id = 0;
-	uint8_t i;
-	bool found;
 
 	tCsrScanResultInfo *pScanResult;
 	tSapSpectChInfo *pSpectCh = pSpectInfoParams->pSpectCh;
@@ -1502,15 +1504,15 @@ static void sap_compute_spect_weight(tSapChSelSpectInfo *pSpectInfoParams,
 		     chn_num++) {
 
 			/*
-			 * If the Beacon has channel ID, use it other wise we
-			 * will rely on the channelIdSelf
+			 *  if the Beacon has channel ID, use it other wise we will
+			 *  rely on the channelIdSelf
 			 */
 			if (pScanResult->BssDescriptor.channelId == 0)
 				channel_id =
-				      pScanResult->BssDescriptor.channelIdSelf;
+					pScanResult->BssDescriptor.channelIdSelf;
 			else
 				channel_id =
-				      pScanResult->BssDescriptor.channelId;
+					pScanResult->BssDescriptor.channelId;
 
 			if (pSpectCh && (channel_id == pSpectCh->chNum)) {
 				if (pSpectCh->rssiAgr <
@@ -1596,49 +1598,18 @@ static void sap_compute_spect_weight(tSapChSelSpectInfo *pSpectInfoParams,
 		 */
 
 		rssi = (int8_t) pSpectCh->rssiAgr;
-		if (ch_in_pcl(sap_ctx, pSpectCh->chNum))
+		if (ch_in_pcl(sap_ctx, chn_num))
 			rssi -= PCL_RSSI_DISCOUNT;
 
-		if (rssi < SOFTAP_MIN_RSSI)
-			rssi = SOFTAP_MIN_RSSI;
-
-		if (pSpectCh->weight == SAP_ACS_WEIGHT_MAX) {
-			pSpectCh->weight_copy = pSpectCh->weight;
+		if (pSpectCh->weight == SAP_ACS_WEIGHT_MAX)
 			goto debug_info;
-		}
 
-		/* There may be channels in scanlist, which were not sent to
-		 * FW for scanning as part of ACS scan list, but they do have an
-		 * effect on the neighbouring channels, so they help to find a
-		 * suitable channel, but there weight should be max as they were
-		 * and not meant to be included in the ACS scan results.
-		 * So just assign RSSI as -100, bsscount as 0, and weight as max
-		 * to them, so that they always stay low in sorting of best
-		 * channels which were included in ACS scan list
-		 */
-		found = false;
-		for (i = 0; i < sap_ctx->num_of_channel; i++) {
-			if (pSpectCh->chNum == sap_ctx->channelList[i]) {
-			/* Scan channel was included in ACS scan list */
-				found = true;
-				break;
-			}
-		}
-
-		if (found)
-			pSpectCh->weight =
-				SAPDFS_NORMALISE_1000 *
-				(sapweight_rssi_count(sap_ctx, rssi,
-				pSpectCh->bssCount) + sap_weight_channel_status(
-				sap_ctx, sap_get_channel_status(pMac,
+		pSpectCh->weight =
+			SAPDFS_NORMALISE_1000 *
+			 (sapweight_rssi_count(sap_ctx, rssi,
+			 pSpectCh->bssCount) + sap_weight_channel_status(
+			 sap_ctx, sap_get_channel_status(pMac,
 							 pSpectCh->chNum)));
-		else {
-			pSpectCh->weight = SAP_ACS_WEIGHT_MAX;
-			pSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
-			rssi = SOFTAP_MIN_RSSI;
-			pSpectCh->bssCount = SOFTAP_MIN_COUNT;
-		}
-
 		if (pSpectCh->weight > SAP_ACS_WEIGHT_MAX)
 			pSpectCh->weight = SAP_ACS_WEIGHT_MAX;
 		pSpectCh->weight_copy = pSpectCh->weight;
@@ -1646,9 +1617,9 @@ static void sap_compute_spect_weight(tSapChSelSpectInfo *pSpectInfoParams,
 debug_info:
 		/* ------ Debug Info ------ */
 		QDF_TRACE(QDF_MODULE_ID_SAP, QDF_TRACE_LEVEL_INFO_HIGH,
-			  "In %s, Chan=%d Weight= %d rssiAgr=%d, rssi_pcl_discount: %d, bssCount=%d",
+			  "In %s, Chan=%d Weight= %d rssiAgr=%d bssCount=%d",
 			  __func__, pSpectCh->chNum, pSpectCh->weight,
-			  pSpectCh->rssiAgr, rssi, pSpectCh->bssCount);
+			  pSpectCh->rssiAgr, pSpectCh->bssCount);
 		/* ------ Debug Info ------ */
 		pSpectCh++;
 	}

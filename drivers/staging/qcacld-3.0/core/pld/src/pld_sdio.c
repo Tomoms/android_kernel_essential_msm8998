@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -51,16 +51,15 @@ static int pld_sdio_probe(struct sdio_func *sdio_func,
 			  const struct sdio_device_id *id)
 {
 	struct pld_context *pld_context;
-	struct device *dev;
-	int ret;
+	struct device *dev = &sdio_func->dev;
+	int ret = 0;
 
 	pld_context = pld_get_global_context();
-	if (!pld_context || !sdio_func) {
+	if (!pld_context) {
 		ret = -ENODEV;
 		goto out;
 	}
 
-	dev = &sdio_func->dev;
 	ret = pld_add_dev(pld_context, dev, PLD_BUS_TYPE_SDIO);
 	if (ret)
 		goto out;

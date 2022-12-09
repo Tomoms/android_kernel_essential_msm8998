@@ -83,14 +83,15 @@ struct hdd_request *hdd_request_alloc(const struct hdd_request_params *params)
 	struct hdd_request *request;
 
 	if (!is_initialized) {
-		hdd_err("invoked when not initialized");
+		hdd_err("invoked when not initialized from %pS",
+			(void *)_RET_IP_);
 		return NULL;
 	}
 
 	length = sizeof(*request) + params->priv_size;
 	request = qdf_mem_malloc(length);
 	if (!request) {
-		hdd_err("allocation failed");
+		hdd_err("allocation failed for %pS", (void *)_RET_IP_);
 		return NULL;
 	}
 	request->reference_count = 1;
@@ -100,7 +101,8 @@ struct hdd_request *hdd_request_alloc(const struct hdd_request_params *params)
 	request->cookie = cookie++;
 	qdf_list_insert_back(&requests, &request->node);
 	qdf_spin_unlock_bh(&spinlock);
-	hdd_debug("request %pK, cookie %pK", request, request->cookie);
+	hdd_debug("request %pK, cookie %pK, caller %pS",
+		  request, request->cookie, (void *)_RET_IP_);
 
 	return request;
 }
@@ -121,7 +123,8 @@ struct hdd_request *hdd_request_get(void *cookie)
 	struct hdd_request *request;
 
 	if (!is_initialized) {
-		hdd_err("invoked when not initialized");
+		hdd_err("invoked when not initialized from %pS",
+			(void *)_RET_IP_);
 		return NULL;
 	}
 	qdf_spin_lock_bh(&spinlock);
@@ -129,7 +132,8 @@ struct hdd_request *hdd_request_get(void *cookie)
 	if (request)
 		request->reference_count++;
 	qdf_spin_unlock_bh(&spinlock);
-	hdd_debug("cookie %pK, request %pK", cookie, request);
+	hdd_debug("cookie %pK, request %pK, caller %pS",
+		  cookie, request, (void *)_RET_IP_);
 
 	return request;
 }
@@ -138,7 +142,8 @@ void hdd_request_put(struct hdd_request *request)
 {
 	bool unlinked = false;
 
-	hdd_debug("request %pK, cookie %pK", request, request->cookie);
+	hdd_debug("request %pK, cookie %pK, caller %pS",
+		  request, request->cookie, (void *)_RET_IP_);
 	qdf_spin_lock_bh(&spinlock);
 	request->reference_count--;
 	if (0 == request->reference_count) {
@@ -167,6 +172,7 @@ void hdd_request_complete(struct hdd_request *request)
 
 void hdd_request_manager_init(void)
 {
+	hdd_debug("%pS", (void *)_RET_IP_);
 	if (is_initialized)
 		return;
 
@@ -184,5 +190,6 @@ void hdd_request_manager_init(void)
  */
 void hdd_request_manager_deinit(void)
 {
+	hdd_debug("%pS", (void *)_RET_IP_);
 	is_initialized = false;
 }

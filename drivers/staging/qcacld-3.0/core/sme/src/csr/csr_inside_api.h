@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /*
@@ -328,10 +337,11 @@ QDF_STATUS csr_scan_handle_failed_lostlink2(tpAniSirGlobal pMac,
 					    uint32_t sessionId);
 QDF_STATUS csr_scan_handle_failed_lostlink3(tpAniSirGlobal pMac,
 					    uint32_t sessionId);
-bool csr_scan_append_bss_description(tpAniSirGlobal pMac,
-				     tSirBssDescription *pSirBssDescription,
-				     tDot11fBeaconIEs *pIes,
-				     uint8_t sessionId);
+struct tag_csrscan_result *csr_scan_append_bss_description(tpAniSirGlobal pMac,
+						tSirBssDescription *
+						pSirBssDescription,
+						tDot11fBeaconIEs *pIes,
+						uint8_t sessionId);
 void csr_scan_call_callback(tpAniSirGlobal pMac, tSmeCmd *pCommand,
 			    eCsrScanStatus scanStatus);
 QDF_STATUS csr_scan_copy_request(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq,
@@ -927,20 +937,6 @@ QDF_STATUS csr_roam_set_pmkid_cache(tpAniSirGlobal pMac, uint32_t sessionId,
 				   uint32_t numItems, bool update_entire_cache);
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-/*
- * csr_get_pmk_info(): store PMK in pmk_cache
- * @mac_ctx: pointer to global structure for MAC
- * @session_id: Sme session id
- * @pmk_cache: pointer to a structure of Pmk
- *
- * This API gets the PMK from the session and
- * stores it in the pmk_cache
- *
- * Return: none
- */
-void csr_get_pmk_info(tpAniSirGlobal mac_ctx, uint8_t session_id,
-		      tPmkidCacheInfo *pmk_cache);
-
 /*
  * csr_roam_set_psk_pmk() -
  * store PSK/PMK

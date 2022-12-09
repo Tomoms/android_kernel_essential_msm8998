@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2011-2012, 2014-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012, 2014-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 #if !defined(__RRMGLOBAL_H)
@@ -153,7 +162,6 @@ typedef struct sRRMReq {
 	union {
 		struct {
 			uint8_t reportingDetail;
-			uint8_t last_beacon_report_indication;
 			tRRMBeaconReportRequestedIes reqIes;
 		} Beacon;
 	} request;
@@ -209,7 +217,6 @@ typedef struct sRrmPEContext {
 	int8_t txMgmtPower;
 	/* Dialog token for the request initiated from station. */
 	uint8_t DialogToken;
-	uint16_t prev_rrm_report_seq_num;
 	tpRRMReq pCurrentReq;
 } tRrmPEContext, *tpRrmPEContext;
 
@@ -289,6 +296,13 @@ enum mask_rm_capability_byte3 {
 	RM_CAP_NONOPER_CHAN_MAX_DURATION_1 = (1 << (5)),
 	RM_CAP_NONOPER_CHAN_MAX_DURATION_2 = (1 << (6)),
 	RM_CAP_NONOPER_CHAN_MAX_DURATION_3 = (1 << (7)),
+	RM_CAP_OPER_CHAN_MAX_DURATION = (RM_CAP_OPER_CHAN_MAX_DURATION_1 |
+					 RM_CAP_OPER_CHAN_MAX_DURATION_2 |
+					 RM_CAP_OPER_CHAN_MAX_DURATION_3),
+	RM_CAP_NONOPER_CHAN_MAX_DURATION =
+				(RM_CAP_NONOPER_CHAN_MAX_DURATION_1 |
+				 RM_CAP_NONOPER_CHAN_MAX_DURATION_2 |
+				 RM_CAP_NONOPER_CHAN_MAX_DURATION_3),
 };
 
 /**
@@ -313,6 +327,9 @@ enum mask_rm_capability_byte4 {
 	RM_CAP_RCPI_MEASUREMENT1 = (1 << (5)),
 	RM_CAP_RSNI_MEASUREMENT = (1 << (6)),
 	RM_CAP_BSS_AVG_ACCESS_DELAY = (1 << (7)),
+	RM_CAP_MEASUREMENT_PILOT = (RM_CAP_MEASUREMENT_PILOT_1 |
+				    RM_CAP_MEASUREMENT_PILOT_2 |
+				    RM_CAP_MEASUREMENT_PILOT_3),
 };
 
 /**

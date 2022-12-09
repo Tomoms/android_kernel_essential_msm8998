@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2014-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 #if !defined(__HOST_DIAG_CORE_EVENT_H)
@@ -45,7 +54,6 @@ extern "C" {
 #endif /* __cplusplus */
 
 #define WAKE_LOCK_NAME_LEN 80
-#define RSN_OUI_SIZE 4
 
 /*-------------------------------------------------------------------------
    Event ID: EVENT_WLAN_SECURITY
@@ -309,27 +317,6 @@ enum resource_failure_type {
 };
 
 /*-------------------------------------------------------------------------
-  Event ID: EVENT_WLAN_RSN_INFO
-  -------------------------------------------------------------------------
- */
-/**
- * struct event_wlan_csr_rsn_info - Structure holding the
- * RSN information for assoc request
- * @akm_suite: Gives information about akm suites used in assoc request
- * @ucast_cipher: Unicast cipher used in assoc request
- * @mcast_cipher: Multicast cipher used in assoc request
- * @group_mgmt: Requested group mgmt cipher suite
- *
- * This structure will hold the RSN information for assoc request
- */
-struct event_wlan_csr_rsn_info {
-	uint8_t   akm_suite[RSN_OUI_SIZE];
-	uint8_t   ucast_cipher[RSN_OUI_SIZE];
-	uint8_t   mcast_cipher[RSN_OUI_SIZE];
-	uint8_t   group_mgmt[RSN_OUI_SIZE];
-};
-
-/*-------------------------------------------------------------------------
   Event ID: EVENT_WLAN_WAKE_LOCK
   ------------------------------------------------------------------------*/
 /**
@@ -442,8 +429,6 @@ struct host_event_wlan_ssr_shutdown {
  * reason unspecified
  * @HOST_STA_KICKOUT_REASON_KEEP_ALIVE: Indicate sta is disconnected
  * because of keep alive
- * @HOST_STA_KICKOUT_REASON_BTM: BTM request from AP with disassoc imminent
- * reason
  *
  * This enum contains the event subtype
  */
@@ -452,7 +437,6 @@ enum host_sta_kickout_events {
 	HOST_STA_KICKOUT_REASON_XRETRY,
 	HOST_STA_KICKOUT_REASON_UNSPECIFIED,
 	HOST_STA_KICKOUT_REASON_KEEP_ALIVE,
-	HOST_STA_KICKOUT_REASON_BTM,
 };
 
 /*-------------------------------------------------------------------------

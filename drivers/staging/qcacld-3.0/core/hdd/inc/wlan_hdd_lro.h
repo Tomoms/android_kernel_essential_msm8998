@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2015-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +16,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 #ifndef __WLAN_HDD_LRO_H__
@@ -132,8 +140,6 @@ struct hdd_lro_s {
 	struct hdd_lro_desc_info lro_desc_info;
 };
 
-int hdd_is_lro_enabled(hdd_context_t *hdd_ctx);
-
 int hdd_lro_enable(hdd_context_t *hdd_ctx,
 	 hdd_adapter_t *adapter);
 
@@ -154,11 +160,6 @@ QDF_STATUS hdd_lro_set_reset(hdd_context_t *hdd_ctx,
 					  uint8_t enable_flag);
 #else
 struct hdd_lro_s {};
-
-static inline int hdd_is_lro_enabled(hdd_context_t *hdd_ctx)
-{
-	return -EOPNOTSUPP;
-}
 
 static inline int hdd_lro_enable(hdd_context_t *hdd_ctx,
 	 hdd_adapter_t *adapter)

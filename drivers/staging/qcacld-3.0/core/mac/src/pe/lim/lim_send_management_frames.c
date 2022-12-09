@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018, 2020 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /**
@@ -1204,7 +1213,7 @@ lim_send_assoc_rsp_mgmt_frame(tpAniSirGlobal mac_ctx,
 				frm.HTCaps.shortGI40MHz = 0;
 
 			populate_dot11f_ht_info(mac_ctx, &frm.HTInfo,
-						pe_session);
+				pe_session);
 		}
 		pe_debug("SupportedChnlWidth: %d, mimoPS: %d, GF: %d, short GI20:%d, shortGI40: %d, dsssCck: %d, AMPDU Param: %x",
 			frm.HTCaps.supportedChannelWidthSet,
@@ -1222,22 +1231,6 @@ lim_send_assoc_rsp_mgmt_frame(tpAniSirGlobal mac_ctx,
 			populate_dot11f_vht_operation(mac_ctx, pe_session,
 					&frm.VHTOperation);
 			is_vht = true;
-		} else if (sta->mlmStaContext.force_1x1 &&
-			   frm.HTCaps.present) {
-			/*
-			 * WAR: In P2P GO mode, if the P2P client device
-			 * is only HT capable and not VHT capable, but the P2P
-			 * GO device is VHT capable and advertises 2x2 NSS with
-			 * HT capablity client device, which results in IOT
-			 * issues.
-			 * When GO is operating in DBS mode, GO beacons
-			 * advertise 2x2 capability but include OMN IE to
-			 * indicate current operating mode of 1x1. But here
-			 * peer device is only HT capable and will not
-			 * understand OMN IE.
-			 */
-			frm.HTInfo.basicMCSSet[1] = 0;
-			frm.HTCaps.supportedMCSSet[1] = 0;
 		}
 
 		if (pe_session->vhtCapability &&
@@ -1613,6 +1606,7 @@ static QDF_STATUS lim_assoc_tx_complete_cnf(tpAniSirGlobal mac_ctx,
  *
  * Return: Void
  */
+
 void
 lim_send_assoc_req_mgmt_frame(tpAniSirGlobal mac_ctx,
 			      tLimMlmAssocReq *mlm_assoc_req,
@@ -1910,7 +1904,8 @@ lim_send_assoc_req_mgmt_frame(tpAniSirGlobal mac_ctx,
 		if (pe_session->beacon && pe_session->bcnLen > ie_offset) {
 			bcn_ie = pe_session->beacon + ie_offset;
 			bcn_ie_len = pe_session->bcnLen - ie_offset;
-			p_ext_cap = wlan_cfg_get_ie_ptr(bcn_ie,
+			p_ext_cap = lim_get_ie_ptr_new(mac_ctx,
+							bcn_ie,
 							bcn_ie_len,
 							DOT11F_EID_EXTCAP,
 							ONE_BYTE);
@@ -1953,7 +1948,7 @@ lim_send_assoc_req_mgmt_frame(tpAniSirGlobal mac_ctx,
 					  mbo_ie, DOT11F_IE_MBO_IE_MAX_LEN);
 		if (sir_status != eSIR_SUCCESS) {
 			pe_err("Failed to strip MBO IE");
-			goto free_mbo_ie;
+			goto end;
 		}
 
 		/* Include the EID and length fields */
@@ -2103,12 +2098,8 @@ lim_send_assoc_req_mgmt_frame(tpAniSirGlobal mac_ctx,
 		/* Pkt will be freed up by the callback */
 		goto end;
 	}
-
-free_mbo_ie:
-	if (mbo_ie)
-		qdf_mem_free(mbo_ie);
-
 end:
+	qdf_mem_free(mbo_ie);
 	/* Free up buffer allocated for mlm_assoc_req */
 	qdf_mem_free(mlm_assoc_req);
 	mlm_assoc_req = NULL;
@@ -3613,8 +3604,6 @@ lim_send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
 				   (uint8_t *) session_entry->bssId,
 				   sizeof(tSirMacAddr));
 
-	lim_set_protected_bit(mac_ctx, session_entry, peer, mac_hdr);
-
 	status = dot11f_pack_ext_channel_switch_action_frame(mac_ctx, &frm,
 		frame + sizeof(tSirMacMgmtHdr), n_payload, &n_payload);
 	if (DOT11F_FAILED(status)) {
@@ -4194,14 +4183,34 @@ returnAfterError:
 	return statusCode;
 } /* End lim_send_link_report_action_frame. */
 
+/**
+ * \brief Send a Beacon Report Action frame
+ *
+ *
+ * \param pMac Pointer to the global MAC structure
+ *
+ * \param dialog_token dialog token to be used in the action frame.
+ *
+ * \param num_report number of reports in pRRMReport.
+ *
+ * \param pRRMReport Address of a tSirMacRadioMeasureReport.
+ *
+ * \param peer mac address of peer station.
+ *
+ * \param psessionEntry address of session entry.
+ *
+ * \return eSIR_SUCCESS on success, eSIR_FAILURE else
+ *
+ *
+ */
+
 tSirRetStatus
 lim_send_radio_measure_report_action_frame(tpAniSirGlobal pMac,
-				uint8_t dialog_token,
-				uint8_t num_report,
-				bool is_last_frame,
-				tpSirMacRadioMeasureReport pRRMReport,
-				tSirMacAddr peer,
-				tpPESession psessionEntry)
+					   uint8_t dialog_token,
+					   uint8_t num_report,
+					   tpSirMacRadioMeasureReport pRRMReport,
+					   tSirMacAddr peer,
+					   tpPESession psessionEntry)
 {
 	tSirRetStatus statusCode = eSIR_SUCCESS;
 	uint8_t *pFrame;
@@ -4212,7 +4221,6 @@ lim_send_radio_measure_report_action_frame(tpAniSirGlobal pMac,
 	uint8_t i;
 	uint8_t txFlag = 0;
 	uint8_t smeSessionId = 0;
-	bool is_last_report = false;
 
 	tDot11fRadioMeasurementReport *frm =
 		qdf_mem_malloc(sizeof(tDot11fRadioMeasurementReport));
@@ -4229,8 +4237,8 @@ lim_send_radio_measure_report_action_frame(tpAniSirGlobal pMac,
 
 	smeSessionId = psessionEntry->smeSessionId;
 
-	pe_debug("dialog_token %d num_report %d is_last_frame %d",
-		 dialog_token, num_report, is_last_frame);
+	pe_debug("dialog_token %d num_report %d",
+			dialog_token, num_report);
 
 	frm->Category.category = SIR_MAC_ACTION_RRM;
 	frm->Action.action = SIR_MAC_RRM_RADIO_MEASURE_RPT;
@@ -4247,19 +4255,10 @@ lim_send_radio_measure_report_action_frame(tpAniSirGlobal pMac,
 		frm->MeasurementReport[i].late = 0;     /* IEEE 802.11k section 7.3.22. (always zero in rrm) */
 		switch (pRRMReport[i].type) {
 		case SIR_MAC_RRM_BEACON_TYPE:
-			/*
-			 * Last beacon report indication needs to be set to 1
-			 * only for the last report in the last frame
-			 */
-			if (is_last_frame &&
-			    (i == (frm->num_MeasurementReport - 1)))
-				is_last_report = true;
-
 			populate_dot11f_beacon_report(pMac,
-						     &frm->MeasurementReport[i],
-						     &pRRMReport[i].report.
-						     beaconReport,
-						     is_last_report);
+						      &frm->MeasurementReport[i],
+						      &pRRMReport[i].report.
+						      beaconReport);
 			frm->MeasurementReport[i].incapable =
 				pRRMReport[i].incapable;
 			frm->MeasurementReport[i].refused =
@@ -4654,9 +4653,7 @@ static void lim_tx_mgmt_frame(tpAniSirGlobal mac_ctx,
 	struct sir_mgmt_msg *mb_msg, uint32_t msg_len,
 	void *packet, uint8_t *frame)
 {
-#ifdef TRACE_RECORD
 	tpSirMacFrameCtl fc = (tpSirMacFrameCtl) mb_msg->data;
-#endif
 	QDF_STATUS qdf_status;
 	uint8_t sme_session_id = 0;
 	tpPESession session;

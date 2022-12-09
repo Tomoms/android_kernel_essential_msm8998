@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2014-2019 The Linux Foundation. All rights reserved.
  *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /******************************************************************************
@@ -741,15 +750,18 @@ static void send_flush_completion_to_user(uint8_t ring_id)
 
 	/* Error on purpose, so that it will get logged in the kmsg */
 	LOGGING_TRACE(QDF_TRACE_LEVEL_DEBUG,
-		      "%s: Sending flush done to userspace reson_code %d, recovery: %d",
-		      __func__, reason_code, recovery_needed);
+		      "%s: Sending flush done to userspace, recovery: %d",
+		      __func__, recovery_needed);
 
 	wlan_report_log_completion(is_fatal, indicator, reason_code, ring_id);
 
 	if (!recovery_needed)
 		return;
 
-	cds_trigger_recovery(CDS_REASON_UNSPECIFIED);
+	if (cds_is_self_recovery_enabled())
+		cds_trigger_recovery(CDS_REASON_UNSPECIFIED);
+	else
+		QDF_BUG(0);
 }
 
 /**

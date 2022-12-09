@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2018 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -869,12 +869,7 @@ static int lim_create_fils_wrapper_data(struct pe_fils_session *fils_info)
 	uint8_t auth_tag[FILS_AUTH_TAG_MAX_LENGTH] = {0};
 	uint32_t length = 0;
 	QDF_STATUS status;
-	int buf_len;
-
-	if (!fils_info)
-		return 0;
-
-	buf_len =
+	int buf_len =
 		/* code + identifier */
 		sizeof(uint8_t) * 2 +
 		/* length */
@@ -887,6 +882,9 @@ static int lim_create_fils_wrapper_data(struct pe_fils_session *fils_info)
 		sizeof(uint8_t) * 2 + fils_info->keyname_nai_length +
 		/* cryptosuite + auth_tag */
 		sizeof(uint8_t) + lim_get_auth_tag_len(HMAC_SHA256_128);
+
+	if (!fils_info)
+		return 0;
 
 	fils_info->fils_erp_reauth_pkt = qdf_mem_malloc(buf_len);
 	if (!fils_info->fils_erp_reauth_pkt) {
@@ -1217,7 +1215,7 @@ uint32_t lim_create_fils_auth_data(tpAniSirGlobal mac_ctx,
 		tpPESession session)
 {
 	uint32_t frame_len = 0;
-	int32_t wrapped_data_len;
+	uint32_t wrapped_data_len;
 
 	if (!session->fils_info)
 		return 0;
@@ -1818,11 +1816,6 @@ QDF_STATUS aead_decrypt_assoc_rsp(tpAniSirGlobal mac_ctx,
 	uint32_t data_len, fils_ies_len;
 	uint8_t *fils_ies;
 	struct pe_fils_session *fils_info = (session->fils_info);
-
-	if (*n_frame < FIXED_PARAM_OFFSET_ASSOC_RSP) {
-		pe_debug("payload len is less than ASSOC RES offset");
-		return QDF_STATUS_E_FAILURE;
-	}
 
 	status = find_ie_data_after_fils_session_ie(mac_ctx, p_frame +
 					      FIXED_PARAM_OFFSET_ASSOC_RSP,

@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2011, 2014-2017 The Linux Foundation. All rights reserved.
  *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 #ifndef _HTT_INTERNAL__H_
@@ -539,7 +548,7 @@ void htt_htc_pkt_free(struct htt_pdev_t *pdev, struct htt_htc_pkt *pkt);
 void htt_htc_pkt_pool_free(struct htt_pdev_t *pdev);
 
 #ifdef ATH_11AC_TXCOMPACT
-void htt_htc_misc_pkt_list_trim(struct htt_pdev_t *pdev);
+void htt_htc_misc_pkt_list_trim(struct htt_pdev_t *pdev, int level);
 
 void
 htt_htc_misc_pkt_list_add(struct htt_pdev_t *pdev, struct htt_htc_pkt *pkt);

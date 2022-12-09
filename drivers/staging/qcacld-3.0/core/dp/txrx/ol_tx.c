@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /* OS abstraction libraries */
@@ -239,12 +248,10 @@ static inline uint8_t ol_tx_prepare_tso(ol_txrx_vdev_handle vdev,
  * ol_tx_data() - send data frame
  * @vdev: virtual device handle
  * @skb: skb
- * @notify_tx_comp: whether OTA to be notified
  *
  * Return: skb/NULL for success
  */
-qdf_nbuf_t ol_tx_data(ol_txrx_vdev_handle vdev, qdf_nbuf_t skb,
-		      bool notify_tx_comp)
+qdf_nbuf_t ol_tx_data(ol_txrx_vdev_handle vdev, qdf_nbuf_t skb)
 {
 	struct ol_txrx_pdev_t *pdev;
 	qdf_nbuf_t ret;
@@ -270,7 +277,7 @@ qdf_nbuf_t ol_tx_data(ol_txrx_vdev_handle vdev, qdf_nbuf_t skb,
 
 	/* Terminate the (single-element) list of tx frames */
 	qdf_nbuf_set_next(skb, NULL);
-	ret = OL_TX_SEND(vdev, skb, notify_tx_comp);
+	ret = OL_TX_SEND(vdev, skb);
 	if (ret) {
 		ol_txrx_dbg("%s: Failed to tx", __func__);
 		return ret;
@@ -314,7 +321,7 @@ qdf_nbuf_t ol_tx_send_ipa_data_frame(void *vdev,
 	 */
 	qdf_net_buf_debug_acquire_skb(skb, __FILE__, __LINE__);
 
-	ret = OL_TX_SEND((struct ol_txrx_vdev_t *)vdev, skb, 0);
+	ret = OL_TX_SEND((struct ol_txrx_vdev_t *)vdev, skb);
 	if (ret) {
 		ol_txrx_dbg("%s: Failed to tx", __func__);
 		return ret;
@@ -377,8 +384,7 @@ static uint32_t ol_tx_tso_get_stats_idx(struct ol_txrx_pdev_t *pdev)
 #endif
 
 #if defined(FEATURE_TSO)
-qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-		    bool notify_tx_comp)
+qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list)
 {
 	qdf_nbuf_t msdu = msdu_list;
 	struct ol_txrx_msdu_info_t msdu_info;
@@ -462,6 +468,8 @@ qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 					 msdu_info.tso_info.curr_seg->next;
 			}
 
+			qdf_nbuf_reset_num_frags(msdu);
+
 			if (msdu_info.tso_info.is_tso) {
 				TXRX_STATS_TSO_INC_SEG(vdev->pdev,
 					tso_msdu_stats_idx);
@@ -476,8 +484,7 @@ qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 }
 #else /* TSO */
 
-qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-		    bool notify_tx_comp)
+qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list)
 {
 	qdf_nbuf_t msdu = msdu_list;
 	struct ol_txrx_msdu_info_t msdu_info;
@@ -529,8 +536,8 @@ qdf_nbuf_t ol_tx_ll(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
  *
  * Return: None
  */
-static inline void ol_tx_trace_pkt(qdf_nbuf_t skb, uint16_t msdu_id,
-				   uint8_t vdev_id)
+static void ol_tx_trace_pkt(qdf_nbuf_t skb, uint16_t msdu_id,
+			    uint8_t vdev_id)
 {
 	DPTRACE(qdf_dp_trace_ptr(skb,
 				 QDF_DP_TRACE_TXRX_FAST_PACKET_PTR_RECORD,
@@ -713,8 +720,7 @@ ol_tx_prepare_ll_fast(struct ol_txrx_pdev_t *pdev,
  * Return: on success return NULL, pointer to nbuf when it fails to send.
  */
 qdf_nbuf_t
-ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-	      bool notify_tx_comp)
+ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list)
 {
 	qdf_nbuf_t msdu = msdu_list;
 	struct ol_txrx_pdev_t *pdev = vdev->pdev;
@@ -828,10 +834,6 @@ ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 
 				htt_tx_desc_display(tx_desc->htt_tx_desc);
 
-				if (!msdu_info.tso_info.is_tso)
-					tx_desc->notify_tx_comp =
-								notify_tx_comp;
-
 				/* mark the relevant tso_seg free-able */
 				if (msdu_info.tso_info.curr_seg) {
 					msdu_info.tso_info.curr_seg->
@@ -872,6 +874,7 @@ ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 
 
 				if (msdu_info.tso_info.is_tso) {
+					qdf_nbuf_reset_num_frags(msdu);
 					TXRX_STATS_TSO_INC_SEG(vdev->pdev,
 						tso_msdu_stats_idx);
 					TXRX_STATS_TSO_INC_SEG_IDX(vdev->pdev,
@@ -899,8 +902,7 @@ ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 }
 #else
 qdf_nbuf_t
-ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-	      bool notify_tx_comp)
+ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list)
 {
 	qdf_nbuf_t msdu = msdu_list;
 	struct ol_txrx_pdev_t *pdev = vdev->pdev;
@@ -965,8 +967,6 @@ ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 				pkt_download_len +=
 				   sizeof(struct htt_tx_msdu_desc_ext_t);
 
-			tx_desc->notify_tx_comp = notify_tx_comp;
-
 			htt_tx_desc_display(tx_desc->htt_tx_desc);
 			/*
 			 * The netbuf may get linked into a different list
@@ -1003,25 +1003,23 @@ ol_tx_ll_fast(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
  *
  */
 qdf_nbuf_t
-ol_tx_ll_wrapper(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-		 bool notify_tx_comp)
+ol_tx_ll_wrapper(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list)
 {
 	struct hif_opaque_softc *hif_device =
 		(struct hif_opaque_softc *)cds_get_context(QDF_MODULE_ID_HIF);
 
 	if (qdf_likely(hif_device && hif_is_fastpath_mode_enabled(hif_device)))
-		msdu_list = ol_tx_ll_fast(vdev, msdu_list, notify_tx_comp);
+		msdu_list = ol_tx_ll_fast(vdev, msdu_list);
 	else
-		msdu_list = ol_tx_ll(vdev, msdu_list, notify_tx_comp);
+		msdu_list = ol_tx_ll(vdev, msdu_list);
 
 	return msdu_list;
 }
 #else
 qdf_nbuf_t
-ol_tx_ll_wrapper(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-		 bool notify_tx_comp)
+ol_tx_ll_wrapper(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list)
 {
-	return ol_tx_ll(vdev, msdu_list, notify_tx_comp);
+	return ol_tx_ll(vdev, msdu_list);
 }
 #endif  /* WLAN_FEATURE_FASTPATH */
 
@@ -1071,7 +1069,7 @@ static void ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
 			qdf_nbuf_set_next(tx_msdu, NULL);
 			QDF_NBUF_UPDATE_TX_PKT_COUNT(tx_msdu,
 						QDF_NBUF_TX_PKT_TXRX_DEQUEUE);
-			tx_msdu = ol_tx_ll_wrapper(vdev, tx_msdu, 0);
+			tx_msdu = ol_tx_ll_wrapper(vdev, tx_msdu);
 			/*
 			 * It is unexpected that ol_tx_ll would reject the frame
 			 * since we checked that there's room for it, though
@@ -1148,8 +1146,7 @@ ol_tx_vdev_pause_queue_append(struct ol_txrx_vdev_t *vdev,
  * Store up the tx frame in the vdev's tx queue if the vdev is paused.
  * If there are too many frames in the tx queue, reject it.
  */
-qdf_nbuf_t ol_tx_ll_queue(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-			  bool notify_tx_comp)
+qdf_nbuf_t ol_tx_ll_queue(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list)
 {
 	uint16_t eth_type;
 	uint32_t paused_reason;
@@ -1168,8 +1165,7 @@ qdf_nbuf_t ol_tx_ll_queue(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 				   (((struct ethernet_hdr_t *)
 				     qdf_nbuf_data(msdu_list))->ethertype[1]);
 			if (ETHERTYPE_IS_EAPOL_WAPI(eth_type)) {
-				msdu_list =
-					ol_tx_ll_wrapper(vdev, msdu_list, 0);
+				msdu_list = ol_tx_ll_wrapper(vdev, msdu_list);
 				return msdu_list;
 			}
 		}
@@ -1203,7 +1199,7 @@ qdf_nbuf_t ol_tx_ll_queue(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
 			 * not paused, no throttle and no backlog -
 			 * send the new frames
 			 */
-			msdu_list = ol_tx_ll_wrapper(vdev, msdu_list, 0);
+			msdu_list = ol_tx_ll_wrapper(vdev, msdu_list);
 		}
 	}
 	return msdu_list;
@@ -1267,7 +1263,7 @@ void ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
 					vdev->ll_pause.txq.tail = NULL;
 
 				qdf_nbuf_set_next(tx_msdu, NULL);
-				tx_msdu = ol_tx_ll_wrapper(vdev, tx_msdu, 0);
+				tx_msdu = ol_tx_ll_wrapper(vdev, tx_msdu);
 				/*
 				 * It is unexpected that ol_tx_ll would reject
 				 * the frame, since we checked that there's
@@ -1306,7 +1302,7 @@ void ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
 	}
 }
 
-void ol_tx_vdev_ll_pause_queue_send(unsigned long context)
+void ol_tx_vdev_ll_pause_queue_send(void *context)
 {
 	struct ol_txrx_vdev_t *vdev = (struct ol_txrx_vdev_t *)context;
 	struct ol_txrx_pdev_t *pdev = vdev->pdev;
@@ -1862,17 +1858,6 @@ ol_tx_hl_base(
 			txq = ol_tx_classify(vdev, tx_desc, msdu,
 							&tx_msdu_info);
 
-			/* initialize the HW tx descriptor */
-			htt_tx_desc_init(
-					pdev->htt_pdev, tx_desc->htt_tx_desc,
-					tx_desc->htt_tx_desc_paddr,
-					ol_tx_desc_id(pdev, tx_desc),
-					msdu,
-					&tx_msdu_info.htt,
-					&tx_msdu_info.tso_info,
-					&tx_ctrl,
-					vdev->opmode == wlan_op_mode_ocb);
-
 			if ((!txq) || TX_FILTER_CHECK(&tx_msdu_info)) {
 				/*
 				 * drop this frame,
@@ -1950,6 +1935,16 @@ ol_tx_hl_base(
 						&tx_msdu_info))
 				goto MSDU_LOOP_BOTTOM;
 
+			/* initialize the HW tx descriptor */
+			htt_tx_desc_init(
+					pdev->htt_pdev, tx_desc->htt_tx_desc,
+					tx_desc->htt_tx_desc_paddr,
+					ol_tx_desc_id(pdev, tx_desc),
+					msdu,
+					&tx_msdu_info.htt,
+					&tx_msdu_info.tso_info,
+					&tx_ctrl,
+					vdev->opmode == wlan_op_mode_ocb);
 			/*
 			 * If debug display is enabled, show the meta-data
 			 * being downloaded to the target via the
@@ -1972,8 +1967,7 @@ MSDU_LOOP_BOTTOM:
 }
 
 qdf_nbuf_t
-ol_tx_hl(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list,
-	 bool notify_tx_comp)
+ol_tx_hl(ol_txrx_vdev_handle vdev, qdf_nbuf_t msdu_list)
 {
 	struct ol_txrx_pdev_t *pdev = vdev->pdev;
 	int tx_comp_req = pdev->cfg.default_tx_comp_req;

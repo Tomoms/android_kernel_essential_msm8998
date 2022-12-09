@@ -116,8 +116,7 @@ QDF_STATUS qdf_idr_remove(qdf_idr *idp, int32_t id)
 		return QDF_STATUS_E_INVAL;
 
 	qdf_spinlock_acquire(&idp->lock);
-	if (idr_find(&idp->idr, id))
-		idr_remove(&idp->idr, id);
+	idr_remove(&idp->idr, id);
 	qdf_spinlock_release(&idp->lock);
 
 	return QDF_STATUS_SUCCESS;

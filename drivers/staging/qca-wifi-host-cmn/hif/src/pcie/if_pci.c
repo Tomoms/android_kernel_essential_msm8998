@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 #include <linux/pci.h>
@@ -1479,7 +1488,7 @@ static void soc_wake_reset(struct hif_softc *scn)
  * allow the target to go to sleep and cancel the sleep timer.
  * otherwise reschedule the sleep timer.
  */
-static void hif_sleep_entry(unsigned long arg)
+static void hif_sleep_entry(void *arg)
 {
 	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)arg;
 	struct hif_softc *scn = HIF_GET_SOFTC(hif_state);

@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -16,6 +19,11 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
+ */
 /**
  * @file cdp_txrx_ipa.h
  * @brief Define the host data path IP Acceleraor API functions
@@ -81,9 +89,6 @@ void ol_txrx_ipa_uc_get_share_stats(ol_txrx_pdev_handle pdev,
 void ol_txrx_ipa_uc_set_quota(ol_txrx_pdev_handle pdev, uint64_t quota_bytes);
 
 qdf_nbuf_t ol_tx_send_ipa_data_frame(void *vdev, qdf_nbuf_t skb);
-
-int ol_txrx_rx_hash_smmu_map(ol_txrx_pdev_handle pdev, bool map);
-
 #else
 
 static inline void
@@ -124,11 +129,6 @@ static inline void ol_txrx_ipa_uc_set_quota(ol_txrx_pdev_handle pdev,
 
 static inline void ol_txrx_ipa_uc_get_stat(ol_txrx_pdev_handle pdev)
 {
-}
-
-static inline int ol_txrx_rx_hash_smmu_map(ol_txrx_pdev_handle pdev, bool map)
-{
-	return 0;
 }
 #endif /* IPA_OFFLOAD */
 

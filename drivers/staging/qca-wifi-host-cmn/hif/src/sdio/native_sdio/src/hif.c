@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 #include <linux/mmc/card.h>
@@ -718,7 +727,6 @@ static int async_task(void *param)
 	struct hif_sdio_dev *device;
 	struct bus_request *request;
 	QDF_STATUS status;
-	bool claimed = false;
 
 	device = (struct hif_sdio_dev *) param;
 	set_current_state(TASK_INTERRUPTIBLE);
@@ -741,6 +749,7 @@ static int async_task(void *param)
 		 * if possible, but holding the host blocks
 		 * card interrupts
 		 */
+		sdio_claim_host(device->func);
 		qdf_spin_lock_irqsave(&device->asynclock);
 		/* pull the request to work on */
 		while (device->asyncreq != NULL) {
@@ -754,10 +763,6 @@ static int async_task(void *param)
 				("%s: async_task processing req: 0x%lX\n",
 				 __func__, (unsigned long)request));
 
-			if (!claimed) {
-				sdio_claim_host(device->func);
-				claimed = true;
-			}
 			if (request->scatter_req != NULL) {
 				A_ASSERT(device->scatter_enabled);
 				/* pass the request to scatter routine which
@@ -805,10 +810,7 @@ static int async_task(void *param)
 			qdf_spin_lock_irqsave(&device->asynclock);
 		}
 		qdf_spin_unlock_irqrestore(&device->asynclock);
-		if (claimed) {
-			sdio_release_host(device->func);
-			claimed = false;
-		}
+		sdio_release_host(device->func);
 	}
 
 	complete_and_exit(&device->async_completion, 0);
@@ -1405,7 +1407,7 @@ void hif_sdio_shutdown(struct hif_softc *hif_ctx)
  */
 static void hif_irq_handler(struct sdio_func *func)
 {
-	QDF_STATUS status = QDF_STATUS_SUCCESS;
+	QDF_STATUS status;
 	struct hif_sdio_dev *device;
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
@@ -1417,8 +1419,7 @@ static void hif_irq_handler(struct sdio_func *func)
 	 * it when we process cmds
 	 */
 	sdio_release_host(device->func);
-	if (device->htc_callbacks.dsrHandler)
-		status = device->htc_callbacks.dsrHandler(device->htc_callbacks
+	status = device->htc_callbacks.dsrHandler(device->htc_callbacks
 						  .context);
 	sdio_claim_host(device->func);
 	atomic_set(&device->irq_handling, 0);

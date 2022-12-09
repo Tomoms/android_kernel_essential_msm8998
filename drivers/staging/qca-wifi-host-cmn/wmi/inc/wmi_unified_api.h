@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2013-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -14,6 +17,12 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
  */
 
 /*
@@ -138,10 +147,10 @@ wmi_unified_remove_work(struct wmi_unified *wmi_handle);
 #ifdef MEMORY_DEBUG
 #define wmi_buf_alloc(h, l) wmi_buf_alloc_debug(h, l, __FILE__, __LINE__)
 wmi_buf_t
-wmi_buf_alloc_debug(wmi_unified_t wmi_handle, uint32_t len,
+wmi_buf_alloc_debug(wmi_unified_t wmi_handle, uint16_t len,
 		    uint8_t *file_name, uint32_t line_num);
 #else
-wmi_buf_t wmi_buf_alloc(wmi_unified_t wmi_handle, uint32_t len);
+wmi_buf_t wmi_buf_alloc(wmi_unified_t wmi_handle, uint16_t len);
 #endif
 
 /**
@@ -1454,16 +1463,6 @@ QDF_STATUS wmi_unified_send_sar_limit_cmd(void *wmi_hdl,
 QDF_STATUS wmi_unified_get_sar_limit_cmd(void *wmi_hdl);
 
 /**
- * wmi_unified_send_coex_config_cmd() - send coex config command to firmware
- * @wmi_hdl: wmi handle
- * @params: coex config params
- *
- * Return: QDF_STATUS_SUCCESS on success or error code on failure
- */
-QDF_STATUS wmi_unified_send_coex_config_cmd(void *wmi_hdl,
-					    struct coex_config_params *params);
-
-/**
  * wmi_unified_extract_sar_limit_event() - extract SAR limits from FW event
  * @wmi_hdl: wmi handle
  * @evt_buf: event buffer received from firmware
@@ -1475,18 +1474,6 @@ QDF_STATUS wmi_unified_send_coex_config_cmd(void *wmi_hdl,
 QDF_STATUS wmi_unified_extract_sar_limit_event(void *wmi_hdl,
 					       uint8_t *evt_buf,
 					       struct sar_limit_event *event);
-
-/**
- * wmi_unified_extract_sar2_result_event() - extract SAR limits from FW event
- * @handle: wmi handle
- * @event: event buffer received from firmware
- * @len: length of the event buffer
- *
- * Return: QDF_STATUS_SUCCESS for success or error code
- */
-QDF_STATUS wmi_unified_extract_sar2_result_event(void *handle,
-						 uint8_t *event, uint32_t len);
-
 
 QDF_STATUS wmi_unified_send_adapt_dwelltime_params_cmd(void *wmi_hdl,
 				   struct wmi_adaptive_dwelltime_params *
@@ -1588,19 +1575,6 @@ wmi_unified_send_roam_scan_stats_cmd(void *wmi_hdl,
 				     struct wmi_roam_scan_stats_req *params);
 
 /**
- * wmi_extract_roam_scan_stats_res_evt() - API to extract roam scan stats res
- * @wmi: wmi handle
- * @evt_buf: pointer to the event buffer
- * @vdev_id: output pointer to hold vdev id
- * @res_param: output pointer to hold extracted memory
- *
- * Return: QDF_STATUS
- */
-QDF_STATUS
-wmi_extract_roam_scan_stats_res_evt(wmi_unified_t wmi, void *evt_buf,
-				    uint32_t *vdev_id,
-				    struct wmi_roam_scan_stats_res **res_param);
-/**
  * wmi_unified_offload_11k_cmd() - send 11k offload command
  * @wmi_hdl: wmi handle
  * @params: 11k offload params
@@ -1623,14 +1597,4 @@ QDF_STATUS wmi_unified_offload_11k_cmd(void *wmi_hdl,
  */
 QDF_STATUS wmi_unified_invoke_neighbor_report_cmd(void *wmi_hdl,
 			struct wmi_invoke_neighbor_report_params *params);
-
-/**
- * wmi_unified_send_btm_config() - Send BTM config to fw
- * @wmi_hdl:  wmi handle
- * @params: pointer to wmi_btm_config
- *
- * Return: QDF_STATUS
- */
-QDF_STATUS wmi_unified_send_btm_config(void *wmi_hdl,
-				       struct wmi_btm_config *params);
 #endif /* _WMI_UNIFIED_API_H_ */

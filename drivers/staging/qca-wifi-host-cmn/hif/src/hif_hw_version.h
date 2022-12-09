@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -15,6 +18,13 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
+
+/*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
+ */
+
 
 #ifndef HIF_HW_VERSION_H
 #define HIF_HW_VERSION_H
@@ -34,7 +44,6 @@
 #define WCN3990_v1                      0x40000000
 #define WCN3990_v2                      0x40010000
 #define WCN3990_v2_1                    0x40010002
-#define WCN3998                         0x40030001
 
 struct qwlan_hw {
 	u32 id;

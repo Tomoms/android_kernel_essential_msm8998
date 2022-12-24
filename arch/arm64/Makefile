@@ -116,15 +116,6 @@ LDFLAGS		+= -EL $(call ld-option, -maarch64elf, -maarch64linux)
 UTS_MACHINE	:= aarch64
 endif
 
-# msm8998 optimizations
-ifeq ($(cc-name),clang)
-arch-$(CONFIG_ARCH_MSM8998)	:= $(call cc-option, -mcpu=cortex-a53+crc+crypto -march=armv8-a+crc+crypto)
-tune-$(CONFIG_ARCH_MSM8998)	:= -mtune=cortex-a53
-else
-arch-$(CONFIG_ARCH_MSM8998)	:= $(call cc-option, -mcpu=cortex-a73.cortex-a53+crc+crypto -march=armv8-a+crc+crypto)
-tune-$(CONFIG_ARCH_MSM8998)	:= -mtune=cortex-a73.cortex-a53
-endif
-
 KBUILD_CFLAGS	+= $(arch-y) $(tune-y)
 KBUILD_AFLAGS	+= $(arch-y) $(tune-y)
 

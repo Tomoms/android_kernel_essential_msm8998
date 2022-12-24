@@ -714,7 +714,9 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
 else
 ifeq ($(cc-name), clang)
 KBUILD_CFLAGS	+= -O3 $(call cc-option,-fsanitize=local-init) $(SCRIPT_OPT_FLAGS)
-KBUILD_CFLAGS	+= -mcpu=cortex-a53+crc+crypto -mtune=cortex-a53
+KBUILD_CFLAGS	+= $(call cc-option,-march=armv8-a+crypto+crc,)
+KBUILD_CFLAGS	+= $(call cc-option,-mcpu=kryo,)
+KBUILD_CFLAGS	+= $(call cc-option,-mtune=cortex-a73.cortex-a53,)
 else
 KBUILD_CFLAGS   += -O2
 endif

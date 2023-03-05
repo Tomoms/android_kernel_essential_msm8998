@@ -369,9 +369,10 @@ static void msm_hs_resource_unvote(struct msm_hs_port *msm_uport)
 {
 	struct uart_port *uport = &(msm_uport->uport);
 	int rc = atomic_read(&msm_uport->resource_count);
+#if 0
 	struct msm_hs_tx *tx = &msm_uport->tx;
 	struct msm_hs_rx *rx = &msm_uport->rx;
-
+#endif
 	MSM_HS_DBG("%s(): power usage count %d", __func__, rc);
 	if (rc <= 0) {
 		MSM_HS_WARN("%s(): rc zero, bailing\n", __func__);
@@ -588,8 +589,9 @@ static void hex_dump_ipc(struct msm_hs_port *msm_uport, void *ipc_ctx,
 */
 static void dump_uart_hs_registers(struct msm_hs_port *msm_uport)
 {
+#if 0
 	struct uart_port *uport = &(msm_uport->uport);
-
+#endif
 	if (msm_uport->pm_state != MSM_HS_PM_ACTIVE) {
 		MSM_HS_INFO("%s:Failed clocks are off, resource_count %d",
 			__func__, atomic_read(&msm_uport->resource_count));
@@ -1456,8 +1458,9 @@ static void msm_hs_post_rx_desc(struct msm_hs_port *msm_uport, int inx)
 	int ret;
 
 	phys_addr_t rbuff_addr = rx->rbuffer + (UARTDM_RX_BUF_SIZE * inx);
+#if 0
 	u8 *virt_addr = rx->buffer + (UARTDM_RX_BUF_SIZE * inx);
-
+#endif
 	MSM_HS_DBG("%s: %d:Queue desc %d, 0x%llx, base 0x%llx virtaddr %p",
 		__func__, msm_uport->uport.line, inx,
 		(u64)rbuff_addr, (u64)rx->rbuffer, virt_addr);
@@ -1875,9 +1878,10 @@ static void msm_hs_sps_tx_callback(struct sps_event_notify *notify)
 	struct msm_hs_port *msm_uport =
 		(struct msm_hs_port *)
 		((struct sps_event_notify *)notify)->user;
+#if 0
 	phys_addr_t addr = DESC_FULL_ADDR(notify->data.transfer.iovec.flags,
 		notify->data.transfer.iovec.addr);
-
+#endif
 	msm_uport->notify = *notify;
 	MSM_HS_INFO("tx_cb: addr=0x%pa, size=0x%x, flags=0x%x\n",
 		&addr, notify->data.transfer.iovec.size,

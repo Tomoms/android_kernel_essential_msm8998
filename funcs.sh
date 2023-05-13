@@ -1,7 +1,8 @@
 #!/bin/bash
 
 mymake() {
-	make LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- LD=ld.lld ${1}
+	mkdir /tmp/out_mata_kernel
+	make LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- LD=ld.lld O=/tmp/out_mata_kernel ${1}
 }
 
 setenv () {
@@ -59,7 +60,7 @@ editcfg () {
 		echo "Aborting!"
 		return 1
 	fi
-	if [ -f ".config" ]; then
+	if [ -f "/tmp/out_mata_kernel/.config" ]; then
 		echo ".config exists"
 		mymake nconfig
 	else
@@ -75,7 +76,7 @@ savecfg () {
 		return 1
 	fi
 	mymake savedefconfig
-	mv defconfig arch/arm64/configs/lineageos_mata_defconfig
+	mv /tmp/out_mata_kernel/defconfig arch/arm64/configs/lineageos_mata_defconfig
 }
 
 build () {
@@ -93,11 +94,11 @@ build () {
 }
 
 mkzip () {
-	cp arch/arm64/boot/Image.gz-dtb ../AnyKernel3/
-	(cd ../AnyKernel3 && zip -r ../kernel_Tom_`date +%Y%m%d`.zip *)
+	cp /tmp/out_mata_kernel/arch/arm64/boot/Image.gz-dtb /mnt/data/android/mata/AnyKernel3/
+	(cd /mnt/data/android/mata/AnyKernel3 && zip -r ../kernels/kernel_Tom_`date +%Y%m%d`.zip *)
 	printf "Sideload zip? [Y/n]"
 	read answer
 	if [[ $answer != "n" ]]; then
-		adb sideload ../kernel_Tom_`date +%Y%m%d`.zip
+		adb sideload /mnt/data/android/mata/kernels/kernel_Tom_`date +%Y%m%d`.zip
 	fi
 }

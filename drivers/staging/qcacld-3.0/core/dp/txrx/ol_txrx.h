@@ -208,4 +208,5 @@ struct ol_txrx_fw_stats_desc_t
 struct ol_txrx_stats_req_internal *ol_txrx_fw_stats_desc_get_req(struct
 	ol_txrx_pdev_t *pdev, uint8_t desc_id);
 
+void ol_txrx_peer_flush_frags(ol_txrx_pdev_handle pdev, uint8_t vdev_id, uint8_t *peer_mac);
 #endif /* _OL_TXRX__H_ */

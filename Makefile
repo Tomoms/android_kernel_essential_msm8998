@@ -412,6 +412,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -Wno-int-conversion \
+		   -Wno-incompatible-function-pointer-types \
 		   -std=gnu89 $(call cc-option,-fno-PIE) $(CLANG_FLAGS)
 
 

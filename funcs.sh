@@ -2,13 +2,13 @@
 
 mymake() {
 	mkdir /tmp/out_mata_kernel
-	make LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- LD=ld.lld O=/tmp/out_mata_kernel ${1}
+	make LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-suse-linux- CROSS_COMPILE_ARM32=arm-suse-linux-gnueabi- LD=ld.lld O=/tmp/out_mata_kernel ${1}
 }
 
 setenv () {
 	export ARCH=arm64
 	export SUBARCH=arm64
-	export PATH=/mnt/data/android/zyc-clang/bin:$PATH
+	export PATH=/mnt/ssd/20/prebuilts/clang/host/linux-x86/adrian-clang/bin/:$PATH
 }
 
 checkenv () {

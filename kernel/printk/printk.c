@@ -618,7 +618,7 @@ struct devkmsg_user {
 
 static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 {
-	char buf[LOG_LINE_MAX + 1], *line;
+	char *buf, *line;
 	int level = default_message_loglevel;
 	int facility = 1;	/* LOG_USER */
 	size_t len = iov_iter_count(from);
@@ -626,6 +626,9 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 
 	if (len > LOG_LINE_MAX)
 		return -EINVAL;
+	buf = kmalloc(len+1, GFP_KERNEL);
+	if (buf == NULL)
+		return -ENOMEM;
 
 	buf[len] = '\0';
 	if (copy_from_iter(buf, len, from) != len) {
@@ -664,6 +667,7 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 	}
 
 	printk_emit(facility, level, NULL, 0, "%s", line);
+	kfree(buf);
 	return ret;
 }
 
@@ -1152,9 +1156,13 @@ static size_t msg_print_text(const struct printk_log *msg, enum log_flags prev,
 
 static int syslog_print(char __user *buf, int size)
 {
-	char text[LOG_LINE_MAX + PREFIX_MAX];
+	char *text;
 	struct printk_log *msg;
 	int len = 0;
+
+	text = kmalloc(LOG_LINE_MAX + PREFIX_MAX, GFP_KERNEL);
+	if (!text)
+		return -ENOMEM;
 
 	while (size > 0) {
 		size_t n;
@@ -1206,6 +1214,7 @@ static int syslog_print(char __user *buf, int size)
 		buf += n;
 	}
 
+	kfree(text);
 	return len;
 }
 

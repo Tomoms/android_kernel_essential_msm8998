@@ -152,8 +152,8 @@ static void rmnet_mhi_internal_clean_unmap_buffers(struct net_device *dev,
 						   enum dma_data_direction dir)
 {
 	struct mhi_skb_priv *skb_priv;
-	struct rmnet_mhi_private *rmnet_mhi_ptr =
-			*(struct rmnet_mhi_private **)netdev_priv(dev);
+	//struct rmnet_mhi_private *rmnet_mhi_ptr =
+		//	*(struct rmnet_mhi_private **)netdev_priv(dev);
 
 	rmnet_log(rmnet_mhi_ptr, MSG_INFO, "Entered\n");
 	while (!skb_queue_empty(queue)) {

@@ -427,14 +427,49 @@ static int shared_getxattr(struct inode *inode, struct getxattr_iter *it)
 	return ret ? ret : it->buffer_size;
 }
 
-static bool erofs_xattr_user_list(struct dentry *dentry)
+static int erofs_xattr_get_prefix(struct erofs_sb_info *sbi,
+	int type, const char **prefix)
 {
-	return test_opt(EROFS_SB(dentry->d_sb), XATTR_USER);
+	switch (type) {
+	case EROFS_XATTR_INDEX_USER:
+		if (!test_opt(sbi, XATTR_USER))
+			return -EOPNOTSUPP;
+		*prefix = XATTR_USER_PREFIX;
+		return XATTR_USER_PREFIX_LEN;
+
+	case EROFS_XATTR_INDEX_TRUSTED:
+		if (!capable(CAP_SYS_ADMIN))
+			return -EPERM;
+		*prefix = XATTR_TRUSTED_PREFIX;
+		return XATTR_TRUSTED_PREFIX_LEN;
+
+	case EROFS_XATTR_INDEX_SECURITY:
+		*prefix = XATTR_SECURITY_PREFIX;
+		return XATTR_SECURITY_PREFIX_LEN;
+	}
+	return -EINVAL;
 }
 
-static bool erofs_xattr_trusted_list(struct dentry *dentry)
+static size_t erofs_xattr_generic_list(const struct xattr_handler *handler,
+	struct dentry *dentry, char *list, size_t list_size,
+	const char *name, size_t name_len)
 {
-	return capable(CAP_SYS_ADMIN);
+	struct erofs_sb_info *sbi = EROFS_SB(dentry->d_sb);
+	int type = handler->flags;
+	int total_len, prefix_len;
+	const char *prefix;
+
+	prefix_len = erofs_xattr_get_prefix(sbi, type, &prefix);
+	if (prefix_len < 0)
+		return prefix_len;
+
+	total_len = prefix_len + name_len + 1;
+	if (list && total_len <= list_size) {
+		memcpy(list, prefix, prefix_len);
+		memcpy(list + prefix_len, name, name_len);
+		list[prefix_len + name_len] = '\0';
+	}
+	return total_len;
 }
 
 int erofs_getxattr(struct inode *inode, int index,
@@ -469,9 +504,10 @@ int erofs_getxattr(struct inode *inode, int index,
 }
 
 static int erofs_xattr_generic_get(const struct xattr_handler *handler,
-				   struct dentry *unused, struct inode *inode,
-				   const char *name, void *buffer, size_t size)
+	struct dentry *dentry, const char *name, void *buffer,
+	size_t size)
 {
+	struct inode *inode = d_inode(dentry);
 	struct erofs_sb_info *const sbi = EROFS_I_SB(inode);
 
 	switch (handler->flags) {
@@ -493,14 +529,14 @@ static int erofs_xattr_generic_get(const struct xattr_handler *handler,
 const struct xattr_handler erofs_xattr_user_handler = {
 	.prefix	= XATTR_USER_PREFIX,
 	.flags	= EROFS_XATTR_INDEX_USER,
-	.list	= erofs_xattr_user_list,
+	.list	= erofs_xattr_generic_list,
 	.get	= erofs_xattr_generic_get,
 };
 
 const struct xattr_handler erofs_xattr_trusted_handler = {
 	.prefix	= XATTR_TRUSTED_PREFIX,
 	.flags	= EROFS_XATTR_INDEX_TRUSTED,
-	.list	= erofs_xattr_trusted_list,
+	.list	= erofs_xattr_generic_list,
 	.get	= erofs_xattr_generic_get,
 };
 
@@ -541,14 +577,13 @@ static int xattr_entrylist(struct xattr_iter *_it,
 	unsigned int prefix_len;
 	const char *prefix;
 
-	const struct xattr_handler *h =
-		erofs_xattr_handler(entry->e_name_index);
+	struct erofs_sb_info *sbi = EROFS_SB(it->dentry->d_sb);
+	int ret = erofs_xattr_get_prefix(sbi, entry->e_name_index, &prefix);
 
-	if (!h || (h->list && !h->list(it->dentry)))
+	if (ret < 0)
 		return 1;
 
-	prefix = xattr_prefix(h);
-	prefix_len = strlen(prefix);
+	prefix_len = ret;
 
 	if (!it->buffer) {
 		it->buffer_ofs += prefix_len + entry->e_name_len + 1;

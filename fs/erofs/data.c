@@ -271,7 +271,7 @@ static int erofs_raw_access_readpages(struct file *filp,
 {
 	erofs_off_t last_block;
 	struct bio *bio = NULL;
-	gfp_t gfp = readahead_gfp_mask(mapping);
+	gfp_t gfp = mapping_gfp_constraint(mapping, GFP_KERNEL);
 	struct page *page = list_last_entry(pages, struct page, lru);
 
 	trace_erofs_readpages(mapping->host, page, nr_pages, true);

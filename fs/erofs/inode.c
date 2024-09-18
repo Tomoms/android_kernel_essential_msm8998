@@ -362,14 +362,15 @@ const struct inode_operations erofs_generic_iops = {
 };
 
 const struct inode_operations erofs_symlink_iops = {
-	.get_link = page_get_link,
+	.follow_link = page_follow_link_light,
+	.put_link = page_put_link,
 	.getattr = erofs_getattr,
 	.listxattr = erofs_listxattr,
 	.get_acl = erofs_get_acl,
 };
 
 const struct inode_operations erofs_fast_symlink_iops = {
-	.get_link = simple_get_link,
+	.follow_link = simple_follow_link,
 	.getattr = erofs_getattr,
 	.listxattr = erofs_listxattr,
 	.get_acl = erofs_get_acl,

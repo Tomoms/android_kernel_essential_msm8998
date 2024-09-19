@@ -16,6 +16,7 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include "erofs_fs.h"
+#include "staging.h"
 
 /* redefine pr_fmt "erofs: " */
 #undef pr_fmt

@@ -1312,7 +1312,7 @@ static void z_erofs_submit_queue(struct super_block *sb,
 
 			if (bio && cur != last_index + 1) {
 submit_bio_retry:
-				submit_bio(bio);
+				__submit_bio(bio, REQ_OP_READ, 0);
 				bio = NULL;
 			}
 
@@ -1342,7 +1342,7 @@ submit_bio_retry:
 	} while (owned_head != Z_EROFS_PCLUSTER_TAIL);
 
 	if (bio)
-		submit_bio(bio);
+		__submit_bio(bio, REQ_OP_READ, 0);
 
 	/*
 	 * although background is preferred, no one is pending for submission.

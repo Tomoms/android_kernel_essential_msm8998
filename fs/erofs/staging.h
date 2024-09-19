@@ -21,6 +21,23 @@ static inline void clear_and_wake_up_bit(int bit, void *word)
 	wake_up_bit(word, bit);
 }
 
+/* bio stuffs */
+#define REQ_OP_READ    READ
+#define REQ_OP_WRITE   WRITE
+#define bio_op(bio)    ((bio)->bi_rw & 1)
+
+static inline void bio_set_op_attrs(struct bio *bio,
+	unsigned op, unsigned op_flags) {
+	bio->bi_rw = op | op_flags;
+}
+
+/* data.c */
+static inline void __submit_bio(struct bio *bio, unsigned op, unsigned op_flags)
+{
+	bio_set_op_attrs(bio, op, op_flags);
+	submit_bio(0, bio);
+}
+
 /* super.c */
 static inline bool sb_rdonly(const struct super_block *sb) {
 	return sb->s_flags & MS_RDONLY;

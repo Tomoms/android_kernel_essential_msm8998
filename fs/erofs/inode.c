@@ -357,6 +357,7 @@ int erofs_getattr(struct vfsmount *mnt, struct dentry *dentry,
 
 const struct inode_operations erofs_generic_iops = {
 	.getattr = erofs_getattr,
+	.getxattr = generic_getxattr,
 	.listxattr = erofs_listxattr,
 	.get_acl = erofs_get_acl,
 };
@@ -365,6 +366,7 @@ const struct inode_operations erofs_symlink_iops = {
 	.follow_link = page_follow_link_light,
 	.put_link = page_put_link,
 	.getattr = erofs_getattr,
+	.getxattr = generic_getxattr,
 	.listxattr = erofs_listxattr,
 	.get_acl = erofs_get_acl,
 };
@@ -372,6 +374,7 @@ const struct inode_operations erofs_symlink_iops = {
 const struct inode_operations erofs_fast_symlink_iops = {
 	.follow_link = simple_follow_link,
 	.getattr = erofs_getattr,
+	.getxattr = generic_getxattr,
 	.listxattr = erofs_listxattr,
 	.get_acl = erofs_get_acl,
 };

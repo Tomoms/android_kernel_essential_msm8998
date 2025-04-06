@@ -62,10 +62,7 @@ static void fuse_aio_cleanup_handler(struct fuse_aio_req *aio_req)
 	struct kiocb *iocb = &aio_req->iocb;
 	struct kiocb *iocb_fuse = aio_req->iocb_fuse;
 
-	if (iocb->ki_flags & IOCB_WRITE) {
-		__sb_writers_acquired(file_inode(iocb->ki_filp)->i_sb,
-				      SB_FREEZE_WRITE);
-		file_end_write(iocb->ki_filp);
+	if (is_sync_kiocb(iocb)) {
 		fuse_copyattr(iocb_fuse->ki_filp, iocb->ki_filp);
 	}
 
@@ -97,9 +94,7 @@ ssize_t fuse_passthrough_read_iter(struct kiocb *iocb_fuse,
 
 	old_cred = override_creds(ff->passthrough.cred);
 	if (is_sync_kiocb(iocb_fuse)) {
-		ret = vfs_iter_read(passthrough_filp, iter, &iocb_fuse->ki_pos,
-				    iocb_to_rw_flags(iocb_fuse->ki_flags,
-						     PASSTHROUGH_IOCB_MASK));
+		ret = vfs_iter_read(passthrough_filp, iter, &iocb_fuse->ki_pos);
 	} else {
 		struct fuse_aio_req *aio_req;
 
@@ -112,7 +107,7 @@ ssize_t fuse_passthrough_read_iter(struct kiocb *iocb_fuse,
 		aio_req->iocb_fuse = iocb_fuse;
 		kiocb_clone(&aio_req->iocb, iocb_fuse, passthrough_filp);
 		aio_req->iocb.ki_complete = fuse_aio_rw_complete;
-		ret = call_read_iter(passthrough_filp, &aio_req->iocb, iter);
+		ret = passthrough_filp->f_op->read_iter(&aio_req->iocb, iter);
 		if (ret != -EIOCBQUEUED)
 			fuse_aio_cleanup_handler(aio_req);
 	}
@@ -145,9 +140,7 @@ ssize_t fuse_passthrough_write_iter(struct kiocb *iocb_fuse,
 	old_cred = override_creds(ff->passthrough.cred);
 	if (is_sync_kiocb(iocb_fuse)) {
 		file_start_write(passthrough_filp);
-		ret = vfs_iter_write(passthrough_filp, iter, &iocb_fuse->ki_pos,
-				     iocb_to_rw_flags(iocb_fuse->ki_flags,
-						      PASSTHROUGH_IOCB_MASK));
+		ret = vfs_iter_write(passthrough_filp, iter, &iocb_fuse->ki_pos);
 		file_end_write(passthrough_filp);
 		if (ret > 0)
 			fuse_copyattr(fuse_filp, passthrough_filp);
@@ -166,7 +159,7 @@ ssize_t fuse_passthrough_write_iter(struct kiocb *iocb_fuse,
 		aio_req->iocb_fuse = iocb_fuse;
 		kiocb_clone(&aio_req->iocb, iocb_fuse, passthrough_filp);
 		aio_req->iocb.ki_complete = fuse_aio_rw_complete;
-		ret = call_write_iter(passthrough_filp, &aio_req->iocb, iter);
+		ret = passthrough_filp->f_op->write_iter(&aio_req->iocb, iter);
 		if (ret != -EIOCBQUEUED)
 			fuse_aio_cleanup_handler(aio_req);
 	}
@@ -193,7 +186,7 @@ ssize_t fuse_passthrough_mmap(struct file *file, struct vm_area_struct *vma)
 	vma->vm_file = get_file(passthrough_filp);
 
 	old_cred = override_creds(ff->passthrough.cred);
-	ret = call_mmap(vma->vm_file, vma);
+	ret = vma->vm_file->f_op->mmap(vma->vm_file, vma);
 	revert_creds(old_cred);
 
 	if (ret)
@@ -280,7 +273,9 @@ int fuse_passthrough_setup(struct fuse_conn *fc, struct fuse_file *ff,
 		return -EINVAL;
 
 	spin_lock(&fc->passthrough_req_lock);
-	passthrough = idr_remove(&fc->passthrough_req, passthrough_fh);
+	passthrough = idr_find(&fc->passthrough_req, passthrough_fh);
+	if (passthrough)
+		idr_remove(&fc->passthrough_req, passthrough_fh);
 	spin_unlock(&fc->passthrough_req_lock);
 
 	if (!passthrough)

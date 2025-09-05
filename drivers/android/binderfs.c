@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-#include <linux/compiler_types.h>
+#include <linux/compiler.h>
 #include <linux/errno.h>
 #include <linux/fs.h>
 #include <linux/fsnotify.h>
@@ -29,12 +29,14 @@
 #include <linux/types.h>
 #include <linux/uaccess.h>
 #include <linux/user_namespace.h>
-#include <linux/xarray.h>
 #include <uapi/asm-generic/errno-base.h>
 #include <uapi/linux/android/binder.h>
 #include <uapi/linux/android/binderfs.h>
 
 #include "binder_internal.h"
+
+#define ida_alloc_max(a, b, c) ida_simple_get(a, 0, b + 1, c)
+#define ida_free ida_remove
 
 #define FIRST_INODE 1
 #define SECOND_INODE 2
@@ -364,14 +366,13 @@ static inline bool is_binderfs_control_device(const struct dentry *dentry)
 }
 
 static int binderfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-			   struct inode *new_dir, struct dentry *new_dentry,
-			   unsigned int flags)
+			   struct inode *new_dir, struct dentry *new_dentry)
 {
 	if (is_binderfs_control_device(old_dentry) ||
 	    is_binderfs_control_device(new_dentry))
 		return -EPERM;
 
-	return simple_rename(old_dir, old_dentry, new_dir, new_dentry, flags);
+	return simple_rename(old_dir, old_dentry, new_dir, new_dentry, 0);
 }
 
 static int binderfs_unlink(struct inode *dir, struct dentry *dentry)
@@ -676,7 +677,7 @@ static int binderfs_fill_super(struct super_block *sb, void *data, int silent)
 	 * allowed to do. So removing the SB_I_NODEV flag from s_iflags is both
 	 * necessary and safe.
 	 */
-	sb->s_iflags &= ~SB_I_NODEV;
+	sb->s_iflags &= ~MS_NODEV;
 	sb->s_iflags |= SB_I_NOEXEC;
 	sb->s_magic = BINDERFS_SUPER_MAGIC;
 	sb->s_op = &binderfs_super_ops;

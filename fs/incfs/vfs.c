@@ -99,7 +99,7 @@ static int dir_rename_wrap(struct inode *old_dir, struct dentry *old_dentry,
 static const struct inode_operations incfs_dir_inode_ops = {
 	.lookup = dir_lookup,
 	.mkdir = dir_mkdir,
-	.rename = dir_rename_wrap,
+	.rename2 = dir_rename_wrap,
 	.unlink = dir_unlink,
 	.link = dir_link,
 	.rmdir = dir_rmdir,
@@ -169,14 +169,14 @@ static const struct inode_operations incfs_file_inode_ops = {
 };
 
 static int incfs_handler_getxattr(const struct xattr_handler *xh,
-				  struct dentry *d, struct inode *inode,
+				  struct dentry *d,
 				  const char *name, void *buffer, size_t size)
 {
 	return incfs_getxattr(d, name, buffer, size);
 }
 
 static int incfs_handler_setxattr(const struct xattr_handler *xh,
-				  struct dentry *d, struct inode *inode,
+				  struct dentry *d,
 				  const char *name, const void *buffer,
 				  size_t size, int flags)
 {
@@ -1732,8 +1732,7 @@ static int dir_unlink(struct inode *dir, struct dentry *dentry)
 		goto out;
 	}
 
-	err = vfs_getattr(&backing_path, &stat, STATX_NLINK,
-			  AT_STATX_SYNC_AS_STAT);
+	err = vfs_getattr(&backing_path, &stat);
 	if (err)
 		goto out;
 
@@ -2077,7 +2076,7 @@ static int incfs_setattr(struct dentry *dentry, struct iattr *ia)
 	}
 
 	inode_lock(d_inode(backing_dentry));
-	error = notify_change(backing_dentry, ia);
+	error = notify_change(backing_dentry, ia, NULL);
 	inode_unlock(d_inode(backing_dentry));
 
 	if (error)
@@ -2273,7 +2272,7 @@ struct dentry *incfs_mount_fs(struct file_system_type *type, int flags,
 		goto err_put_path;
 
 	path_put(&backing_dir_path);
-	sb->s_flags |= SB_ACTIVE;
+	sb->s_flags |= MS_ACTIVE;
 
 	pr_debug("incfs: mount\n");
 	return dget(sb->s_root);

@@ -8,7 +8,7 @@ mymake() {
 setenv () {
 	export ARCH=arm64
 	export SUBARCH=arm64
-	export PATH=/mnt/ssd/20/prebuilts/clang/host/linux-x86/adrian-clang/bin/:$PATH
+	export PATH=/mnt/sources/22/prebuilts/clang/host/linux-x86/clang-r547379/bin/:$PATH
 }
 
 checkenv () {

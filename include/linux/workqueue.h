@@ -358,8 +358,6 @@ extern struct workqueue_struct *system_freezable_wq;
 extern struct workqueue_struct *system_power_efficient_wq;
 extern struct workqueue_struct *system_freezable_power_efficient_wq;
 
-extern bool wq_online;
-
 extern struct workqueue_struct *
 __alloc_workqueue_key(const char *fmt, unsigned int flags, int max_active,
 	struct lock_class_key *key, const char *lock_name, ...) __printf(1, 6);
@@ -599,7 +597,7 @@ static inline bool schedule_delayed_work(struct delayed_work *dwork,
  */
 static inline bool keventd_up(void)
 {
-	return wq_online;
+	return system_wq != NULL;
 }
 
 #ifndef CONFIG_SMP
@@ -629,8 +627,5 @@ void wq_watchdog_touch(int cpu);
 #else	/* CONFIG_WQ_WATCHDOG */
 static inline void wq_watchdog_touch(int cpu) { }
 #endif	/* CONFIG_WQ_WATCHDOG */
-
-int __init workqueue_init_early(void);
-int __init workqueue_init(void);
 
 #endif

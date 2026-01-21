@@ -551,7 +551,19 @@ static void flush_to_ldisc(struct kthread_work *work)
 
 void tty_flip_buffer_push(struct tty_port *port)
 {
+<<<<<<< HEAD
 	tty_schedule_flip(port);
+||||||| parent of 0f18d2bded0f (treewide: Squashed revert of psi backports)
+	struct tty_bufhead *buf = &port->buf;
+
+	tty_flip_buffer_commit(buf->tail);
+	kthread_queue_work(&port->worker, &port->buf.work);
+=======
+	struct tty_bufhead *buf = &port->buf;
+
+	tty_flip_buffer_commit(buf->tail);
+	queue_kthread_work(&port->worker, &port->buf.work);
+>>>>>>> 0f18d2bded0f (treewide: Squashed revert of psi backports)
 }
 EXPORT_SYMBOL(tty_flip_buffer_push);
 

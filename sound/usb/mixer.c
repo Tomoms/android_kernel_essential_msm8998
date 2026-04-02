@@ -1068,6 +1068,13 @@ static void volume_control_quirks(struct usb_mixer_elem_info *cval,
 			snd_usb_mixer_set_ctl_value(cval, UAC_SET_CUR,
 						(cval->control << 8) | 2, 7936);
 		break;
+	case USB_ID(0x31b2, 0x0111): /* MOONDROP JU Jiu */
+		if (!strcmp(kctl->id.name, "PCM Playback Volume")) {
+			usb_audio_info(chip,
+				       "set volume quirk for MOONDROP JU Jiu\n");
+			cval->min = -10880; /* Mute under it */
+		}
+		break;
 	}
 }
 

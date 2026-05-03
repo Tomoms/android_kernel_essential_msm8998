@@ -184,8 +184,8 @@ static void *pack_shadow(unsigned long eviction, struct zone *zone,
 	eviction >>= bucket_order;
 	eviction = (eviction << NODES_SHIFT) | zone_to_nid(zone);
 	eviction = (eviction << ZONES_SHIFT) | zone_idx(zone);
-	eviction = (eviction << RADIX_TREE_EXCEPTIONAL_SHIFT);
 	eviction = (eviction << 1) | workingset;
+	eviction = (eviction << RADIX_TREE_EXCEPTIONAL_SHIFT);
 
 	return (void *)(eviction | RADIX_TREE_EXCEPTIONAL_ENTRY);
 }

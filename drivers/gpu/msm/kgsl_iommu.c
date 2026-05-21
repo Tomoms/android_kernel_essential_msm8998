@@ -2447,7 +2447,7 @@ static int kgsl_iommu_get_gpuaddr(struct kgsl_pagetable *pagetable,
 	struct kgsl_iommu_pt *pt = pagetable->priv;
 	int ret = 0;
 	uint64_t addr, start, end, size;
-	unsigned int align;
+	unsigned long align;
 
 	BUG_ON(kgsl_memdesc_use_cpu_map(memdesc));
 

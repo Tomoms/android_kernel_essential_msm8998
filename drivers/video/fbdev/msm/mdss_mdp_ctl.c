@@ -4237,9 +4237,18 @@ int mdss_mdp_ctl_destroy(struct mdss_mdp_ctl *ctl)
 
 static void mdss_mdp_wait_for_panel_on(struct mdss_panel_data *pdata)
 {
-	struct mdss_dsi_ctrl_pdata *ctrl_pdata =
-		container_of(pdata, typeof(*ctrl_pdata), panel_data);
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata;
 
+	/*
+	 * wake_comp only exists in the DSI controller data. Other interfaces
+	 * (e.g. DisplayPort) embed panel_data in a different structure, so
+	 * container_of() would point at unrelated memory.
+	 */
+	if (pdata->panel_info.type != MIPI_VIDEO_PANEL &&
+	    pdata->panel_info.type != MIPI_CMD_PANEL)
+		return;
+
+	ctrl_pdata = container_of(pdata, typeof(*ctrl_pdata), panel_data);
 	wait_for_completion(&ctrl_pdata->wake_comp);
 }
 

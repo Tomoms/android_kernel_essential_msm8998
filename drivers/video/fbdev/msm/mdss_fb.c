@@ -3931,6 +3931,17 @@ static int mdss_fb_check_var(struct fb_var_screeninfo *var,
 		return -EINVAL;
 	}
 
+	/*
+	 * fb_set_var() rejects a virtual resolution smaller than the visible
+	 * one. Userspace (SDM HWHDMI) only updates xres/yres when switching
+	 * modes on the external DP/HDMI framebuffer, so grow the virtual
+	 * resolution to fit instead of failing the mode set.
+	 */
+	if (var->xres_virtual < var->xres)
+		var->xres_virtual = var->xres;
+	if (var->yres_virtual < var->yres)
+		var->yres_virtual = var->yres;
+
 	if ((var->xres_virtual <= 0) || (var->yres_virtual <= 0))
 		return -EINVAL;
 
